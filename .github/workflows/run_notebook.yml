@@ -2,7 +2,7 @@ name: Run Stock Signals Daily
 
 on:
   schedule:
-    - cron: "0 4 * * *"  # Every day at 4:00 AM UTC, (9:30 AM IST)
+    - cron: "0 16 * * *"  # Every day at 4:00 PM UTC, (9:30 PM IST)
   workflow_dispatch:      # Allows manual run
 
 jobs:
@@ -22,7 +22,11 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-
+        pip install jupyter nbconvert ipykernel
+        
+    - name: Register Python kernel
+      run: |
+        python -m ipykernel install --user --name=python3  # ✅ ensures kernel is available
     - name: Run notebook
       run: |
         mkdir output
