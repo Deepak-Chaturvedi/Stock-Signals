@@ -3,4 +3,3 @@ numpy
 scipy
 yfinance
 papermill
-sqlite3
