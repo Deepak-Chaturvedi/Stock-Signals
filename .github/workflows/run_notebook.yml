@@ -20,18 +20,15 @@ jobs:
 
     - name: Install dependencies
       run: |
-        cd Stock-Signals
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install jupyter nbconvert ipykernel
-        pip install -e .
         pip install -e ./src   
       # ← important for editable install of local package
         
     - name: Register Python kernel
       run: |
         python -m ipykernel install --user --name=python3  
-      # ✅ ensures kernel is available
     - name: Run notebook
       run: |
         mkdir output
