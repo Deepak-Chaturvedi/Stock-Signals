@@ -23,6 +23,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install jupyter nbconvert ipykernel
+        pip install -e .
         pip install -e ./src   
       # ← important for editable install of local package
         
