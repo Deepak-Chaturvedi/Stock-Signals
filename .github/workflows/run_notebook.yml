@@ -23,13 +23,15 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install jupyter nbconvert ipykernel
-        pip install -e ./src   
+#        pip install -e ./src   
       # ← important for editable install of local package
         
     - name: Register Python kernel
       run: |
-        python -m ipykernel install --user --name=python3  
+        python -m ipykernel install --user --name=python3 
+
     - name: Run notebook
       run: |
-        mkdir output
+        mkdir -p output
+        export PYTHONPATH=$PYTHONPATH:$(pwd)/src
         papermill notebooks/Stock_signals_execution_daily.ipynb output/output_notebook.ipynb
