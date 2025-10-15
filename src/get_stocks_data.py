@@ -25,7 +25,7 @@ def get_company_symbols(db_path, table_name: str = "COMPANY_DETAILS") -> pd.Data
     Fetch company details (e.g., ticker symbols) from SQLite.
     Expects a database path.
     """
-
+    print(db_path)
     """Create a connection to the SQLite database."""
     if not os.path.exists(db_path):
         logger.error(f"Database not found at: {db_path}")
