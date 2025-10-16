@@ -106,6 +106,7 @@ def save_accumulation_to_db(accum_df, db_path, table_name='SIGNAL_ACCUMULATION_S
     """
 
     conn = sqlite3.connect(db_path)
+    success = False  # default status
 
     try:
         # Step 1: Load existing table
@@ -139,11 +140,15 @@ def save_accumulation_to_db(accum_df, db_path, table_name='SIGNAL_ACCUMULATION_S
 
         # Step 7: Overwrite table
         combined_df.to_sql(table_name, conn, if_exists='replace', index=False)
-
+        success = True  # operation successful
+        
     except Exception as e:
         print(f"Error saving accumulation data: {e}")
+        success = False
         raise
 
     finally:
         conn.close()
+
+    return success
 
