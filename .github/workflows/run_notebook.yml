@@ -35,4 +35,10 @@ jobs:
         mkdir -p output
         export PYTHONPATH="${PYTHONPATH}:${GITHUB_WORKSPACE}/src"
         papermill notebooks/Stock_signals_execution_daily.ipynb output/output_notebook.ipynb
-#export PYTHONPATH=$PYTHONPATH:$(pwd)/src
+    
+    - name: Upload output notebook
+      uses: actions/upload-artifact@v4
+      with:
+        name: executed-notebook
+        path: output/output_notebook.ipynb
+

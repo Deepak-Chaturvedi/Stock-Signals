@@ -97,9 +97,6 @@ def filter_accumulation(accumulation_df):
     return accum_df.sort_values('AD_Slope', ascending=False).reset_index(drop=True)
 
 
-import pandas as pd
-import sqlite3
-
 def save_accumulation_to_db(accum_df, db_path, table_name='SIGNAL_ACCUMULATION_STEADY'):
     """
     Append accumulation DataFrame to SQLite database,
