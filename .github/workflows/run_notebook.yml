@@ -5,6 +5,9 @@ on:
     - cron: "0 16 * * *"  # Every day at 4:00 PM UTC, (9:30 PM IST)
   workflow_dispatch:      # Allows manual run
 
+permissions:
+  contents: write           # ✅ Needed so GitHub Actions can commit changes
+
 jobs:
   run-notebook:
     runs-on: ubuntu-latest
@@ -12,6 +15,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        persist-credentials: true   # ✅ Allows pushing changes back
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -42,3 +47,19 @@ jobs:
         name: executed-notebook
         path: output/output_notebook.ipynb
 
+ # ✅ New Step: Commit and push updated SQLite file
+    - name: Commit and push updated SQLite database
+      run: |
+        git config --global user.name "github-actions"
+        git config --global user.email "github-actions@github.com"
+        
+        # Replace with your actual SQLite file path
+        git add data/stocks.db
+        
+        # Only commit if there are changes
+        if ! git diff --cached --quiet; then
+          git commit -m "Auto-update SQLite database after notebook run"
+          git push
+        else
+          echo "No database changes detected — skipping commit."
+        fi
