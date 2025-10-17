@@ -19,21 +19,36 @@ async function loadDatabase() {
   const db = new SQL.Database(new Uint8Array(buf));
 
   // --- STEP 2: Query your specific table ---
-  const tableName = "SIGNAL_ACCUMULATION_STEADY";
+  const TableSigAcc = "SIGNAL_ACCUMULATION_STEADY";
+  const TableCompany = "COMPANY_DETAILS";
+  // const TableSigAcc = "SIGNAL_ACCUMULATION_STEADY";
+
 
   // Get all column names
-  const colQuery = db.exec(`PRAGMA table_info(${tableName});`);
+  const colQuery = db.exec(`PRAGMA table_info(${TableSigAcc});`);
   if (colQuery.length === 0) {
-    alert(`Table ${tableName} not found in database.`);
+    alert(`Table ${TableSigAcc} not found in database.`);
     return;
   }
 
   const columns = colQuery[0].values.map(col => col[1]);
 
   // Fetch rows
-  const dataQuery = db.exec(`SELECT * FROM ${tableName} LIMIT 1000;`);
+  SignalQuery = `SELECT DISTINCT A.Symbol, B.COMPANY_NAME AS Name ,
+"Accumulation Signal" AS 'Signal Type'
+,  DATE(Date) AS 'Signal Date'
+
+ FROM ${TableSigAcc} AS A
+ LEFT JOIN ${TableCompany} AS B
+    ON A.Symbol = B.Symbol
+    WHERE B.EXCHANGE != 'BSE'
+ORDER BY 'Signal Date' DESC , a.AD_Slope DESC, a.Avg_Volume_Spike DESC limit 1000;
+`;
+//  const dataQuery = db.exec(`SELECT * FROM ${TableSigAcc} LIMIT 1000;`);
+  const dataQuery = db.exec(SignalQuery);
+
   if (dataQuery.length === 0) {
-    alert(`No data found in table ${tableName}`);
+    alert(`No data found in table ${TableSigAcc}`);
     return;
   }
 
@@ -119,4 +134,3 @@ function applyFilters() {
 
 // --- Auto load data on page load ---
 window.addEventListener("DOMContentLoaded", loadDatabase);
-
