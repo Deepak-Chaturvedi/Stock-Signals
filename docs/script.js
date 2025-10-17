@@ -116,10 +116,21 @@ function renderTable(data, columns) {
     paginationSize: 15,
     columns: columns.map(c => {
       let sorterType = "string";
+      let sorterFunc = undefined;
 
       // Detect numeric or percentage columns
       if (c.toLowerCase().includes("price") || c.toLowerCase().includes("return")) {
         sorterType = "number";
+        // Custom numeric sorter to handle "%" or stringified numbers
+        sorterFunc = (a, b, aRow, bRow, column, dir, sorterParams) => {
+          const toNum = val => {
+            if (typeof val === "string") {
+              return parseFloat(val.replace("%", "").replace(",", "")) || 0;
+            }
+            return val || 0;
+          };
+          return toNum(a) - toNum(b);
+        };
       } 
       // Detect date columns
       else if (c.toLowerCase().includes("date")) {
@@ -130,25 +141,19 @@ function renderTable(data, columns) {
         title: c,
         field: c,
         headerFilter: "input",
-        sorter: sorterType,
+        sorter: sorterFunc ? sorterFunc : sorterType,
         headerSort: true,
-        // Clean up % signs for numeric sorting
-        mutator: (value) => {
-          if (typeof value === "string" && value.includes("%")) {
-            return parseFloat(value.replace("%", ""));
-          }
-          return value;
-        },
       };
     }),
   });
 
-  // ✅ Default sort: Latest Signal Date (descending)
+  // ✅ Default sort: latest Signal Date descending
   const dateCol = columns.find(c => c.toLowerCase().includes("date"));
   if (dateCol) {
     table.setSort([{ column: dateCol, dir: "desc" }]);
   }
 }
+
 
 // --- Filter logic ---
 function applyFilters() {
