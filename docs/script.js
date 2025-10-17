@@ -28,10 +28,22 @@ async function loadDatabase() {
     return;
   }
 
-  const columns = colQuery[0].values.map(col => col[1]);
+  const columns = ["Symbol", "Name", "Signal Type", "Signal Date"];
 
   // Fetch rows
-  const dataQuery = db.exec(`SELECT * FROM ${tableName} LIMIT 1000;`);
+  const dataQuery = db.exec(window.QUERY_SIGNAL_ACCUMULATION);
+
+//   const dataQuery = db.exec(`SELECT DISTINCT A.Symbol, B.COMPANY_NAME AS Name ,
+// "Accumulation Signal" AS 'Signal Type'
+// ,  DATE(Date) AS 'Signal Date'
+
+//  FROM SIGNAL_ACCUMULATION_STEADY AS A
+//  LEFT JOIN COMPANY_DETAILS AS B
+//     ON A.Symbol = B.Symbol
+//     WHERE B.EXCHANGE != 'BSE'
+// ORDER BY 'Signal Date' DESC , a.AD_Slope DESC, a.Avg_Volume_Spike DESC;
+// LIMIT 1000;`);
+
   if (dataQuery.length === 0) {
     alert(`No data found in table ${tableName}`);
     return;
@@ -119,4 +131,3 @@ function applyFilters() {
 
 // --- Auto load data on page load ---
 window.addEventListener("DOMContentLoaded", loadDatabase);
-
