@@ -16,7 +16,8 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        persist-credentials: true   # ✅ Allows pushing changes back
+        # persist-credentials: true   # ✅ Allows pushing changes back
+        fetch-depth: 0        # ✅ Required for pushing commits
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -47,19 +48,41 @@ jobs:
         name: executed-notebook
         path: output/output_notebook.ipynb
 
- # ✅ New Step: Commit and push updated SQLite file
+#  # ✅ New Step: Commit and push updated SQLite file
+#     - name: Commit and push updated SQLite database
+#       run: |
+#         git config --global user.name "github-actions"
+#         git config --global user.email "github-actions@github.com"
+        
+#         # Replace with your actual SQLite file path
+#         git add data/stocks.db
+        
+#         # Only commit if there are changes
+#         if ! git diff --cached --quiet; then
+#           git commit -m "Auto-update SQLite database after notebook run"
+#           git push
+#         else
+#           echo "No database changes detected — skipping commit."
+#         fi
+
+      # ✅ Commit and push updated SQLite database using PAT
     - name: Commit and push updated SQLite database
+      env:
+        PAT_TOKEN: ${{ secrets.PAT_TOKEN }}   # ← Your stored PAT secret
       run: |
         git config --global user.name "github-actions"
         git config --global user.email "github-actions@github.com"
-        
+
         # Replace with your actual SQLite file path
         git add data/stocks.db
-        
+
         # Only commit if there are changes
         if ! git diff --cached --quiet; then
           git commit -m "Auto-update SQLite database after notebook run"
-          git push
+
+          # Use PAT to push to main (bypasses branch protection)
+          git remote set-url origin https://x-access-token:${PAT_TOKEN}@github.com/${{ github.repository }}.git
+          git push origin HEAD:main
         else
           echo "No database changes detected — skipping commit."
         fi
