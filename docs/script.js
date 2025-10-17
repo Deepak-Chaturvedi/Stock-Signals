@@ -107,21 +107,47 @@ function createFilters(data, columns) {
 
 let table; // global reference
 
-// --- Render table with Tabulator ---
+// --- Render table with Tabulator (fixed sorting) ---
 function renderTable(data, columns) {
   table = new Tabulator("#table", {
     data: data,
     layout: "fitDataStretch",
     pagination: "local",
     paginationSize: 15,
-    columns: columns.map(c => ({
-      title: c,
-      field: c,
-      headerFilter: "input",
-      sorter: "string",
-      headerSort: true
-    })),
+    columns: columns.map(c => {
+      let sorterType = "string";
+
+      // Detect numeric or percentage columns
+      if (c.toLowerCase().includes("price") || c.toLowerCase().includes("return")) {
+        sorterType = "number";
+      } 
+      // Detect date columns
+      else if (c.toLowerCase().includes("date")) {
+        sorterType = "date";
+      }
+
+      return {
+        title: c,
+        field: c,
+        headerFilter: "input",
+        sorter: sorterType,
+        headerSort: true,
+        // Clean up % signs for numeric sorting
+        mutator: (value) => {
+          if (typeof value === "string" && value.includes("%")) {
+            return parseFloat(value.replace("%", ""));
+          }
+          return value;
+        },
+      };
+    }),
   });
+
+  // ✅ Default sort: Latest Signal Date (descending)
+  const dateCol = columns.find(c => c.toLowerCase().includes("date"));
+  if (dateCol) {
+    table.setSort([{ column: dateCol, dir: "desc" }]);
+  }
 }
 
 // --- Filter logic ---
