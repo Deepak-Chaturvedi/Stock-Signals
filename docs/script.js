@@ -7,13 +7,16 @@ async function loadDatabase() {
     locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
   });
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const env = urlParams.get("env") || "main";
+  // Check if running on localhost
+  const isDev = window.location.hostname === "localhost";
+
+  const branch = isDev ? "development" : "main";
 
    // 👇 Replace with your actual GitHub username and repo name
    // const dbUrl = "https://raw.githubusercontent.com/Deepak-Chaturvedi/Stock-Signals/main/data/stocks.db";
 
-  const dbUrl = `https://raw.githubusercontent.com/Deepak-Chaturvedi/Stock-Signals/${env}/data/stocks.db`;
+
+  const dbUrl = `https://raw.githubusercontent.com/Deepak-Chaturvedi/Stock-Signals/${branch}/data/stocks.db`;
 
   console.log("Using DB URL:", dbUrl);
 
