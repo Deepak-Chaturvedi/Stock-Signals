@@ -1,0 +1,88 @@
+name: Run Stock Signals Daily
+
+on:
+  schedule:
+    - cron: "0 16 * * *"  # Every day at 4:00 PM UTC, (9:30 PM IST)
+  workflow_dispatch:      # Allows manual run
+
+permissions:
+  contents: write           # ✅ Needed so GitHub Actions can commit changes
+
+jobs:
+  run-notebook:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        # persist-credentials: true   # ✅ Allows pushing changes back
+        fetch-depth: 0        # ✅ Required for pushing commits
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install jupyter nbconvert ipykernel
+#        pip install -e ./src   
+      # ← important for editable install of local package
+        
+    - name: Register Python kernel
+      run: |
+        python -m ipykernel install --user --name=python3 
+
+    - name: Run notebook
+      run: |
+        mkdir -p output
+        export PYTHONPATH="${PYTHONPATH}:${GITHUB_WORKSPACE}/src"
+        papermill notebooks/Stock_signals_execution_daily.ipynb output/output_notebook.ipynb
+    
+    - name: Upload output notebook
+      uses: actions/upload-artifact@v4
+      with:
+        name: executed-notebook
+        path: output/output_notebook.ipynb
+
+#  # ✅ New Step: Commit and push updated SQLite file
+#     - name: Commit and push updated SQLite database
+#       run: |
+#         git config --global user.name "github-actions"
+#         git config --global user.email "github-actions@github.com"
+        
+#         # Replace with your actual SQLite file path
+#         git add data/stocks.db
+        
+#         # Only commit if there are changes
+#         if ! git diff --cached --quiet; then
+#           git commit -m "Auto-update SQLite database after notebook run"
+#           git push
+#         else
+#           echo "No database changes detected — skipping commit."
+#         fi
+
+      # ✅ Commit and push updated SQLite database using PAT
+    - name: Commit and push updated SQLite database
+      env:
+        PAT_TOKEN: ${{ secrets.PAT_TOKEN }}   # ← Your stored PAT secret
+      run: |
+        git config --global user.name "github-actions"
+        git config --global user.email "github-actions@github.com"
+
+        # Replace with your actual SQLite file path
+        git add data/stocks.db
+
+        # Only commit if there are changes
+        if ! git diff --cached --quiet; then
+          git commit -m "Auto-update SQLite database after notebook run"
+
+          # Use PAT to push to main (bypasses branch protection)
+          git remote set-url origin https://x-access-token:${PAT_TOKEN}@github.com/${{ github.repository }}.git
+          git push origin HEAD:main
+        else
+          echo "No database changes detected — skipping commit."
+        fi
