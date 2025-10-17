@@ -7,8 +7,17 @@ async function loadDatabase() {
     locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
   });
 
-  // 👇 Replace with your actual GitHub username and repo name
-  const dbUrl = "https://raw.githubusercontent.com/Deepak-Chaturvedi/Stock-Signals/main/data/stocks.db";
+  const urlParams = new URLSearchParams(window.location.search);
+  const env = urlParams.get("env") || "main";
+
+   // 👇 Replace with your actual GitHub username and repo name
+   // const dbUrl = "https://raw.githubusercontent.com/Deepak-Chaturvedi/Stock-Signals/main/data/stocks.db";
+
+  const dbUrl = `https://raw.githubusercontent.com/Deepak-Chaturvedi/Stock-Signals/${env}/data/stocks.db`;
+
+  console.log("Using DB URL:", dbUrl);
+
+ 
 
   const dataPromise = fetch(dbUrl).then(res => {
     if (!res.ok) throw new Error("Database not found or inaccessible");
