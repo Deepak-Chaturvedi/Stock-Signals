@@ -1,0 +1,27 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 20px;
+  background: #fafafa;
+}
+
+h1 {
+  text-align: center;
+}
+
+#controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+#table {
+  margin: 0 auto;
+  max-width: 90%;
+}
+
+canvas {
+  display: block;
+  margin: 40px auto;
+  max-width: 90%;
+}

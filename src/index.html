@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stock Signals Dashboard</title>
+
+  <!-- Tabulator CSS -->
+  <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- SQL.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+
+  <!-- Tabulator JS -->
+  <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <h1>📈 Stock Signals Dashboard</h1>
+
+  <div id="controls">
+    <button id="loadData">Load Data</button>
+    <input type="text" id="filterInput" placeholder="Filter symbol...">
+  </div>
+
+  <div id="filters" style="display:flex;gap:10px;justify-content:center;margin-bottom:10px;"></div>
+
+  <div id="table"></div>
+
+  <canvas id="chart" width="600" height="300"></canvas>
+
+  <script src="script.js"></script>
+</body>
+</html>
