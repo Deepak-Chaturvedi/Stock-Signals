@@ -10,8 +10,6 @@
 //   ORDER BY "Signal Date" DESC, A.AD_Slope DESC, A.Avg_Volume_Spike DESC;
 
 window.QUERY_SIGNAL_ACCUMULATION = `
-
-
   SELECT DISTINCT 
   A.Symbol, 
   B.COMPANY_NAME AS Name,
