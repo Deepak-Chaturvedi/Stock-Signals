@@ -59,6 +59,16 @@ async function loadDatabase() {
     return;
   }
 
+  if (dataQuery.length > 0) {
+  console.log("Row count:", dataQuery[0].values.length);
+
+  // Check if the last column is percentage values
+  const allReturns = dataQuery[0].values.map(r => parseFloat((r.at(-1) || "0").toString().replace("%", "")));
+  const maxReturn = Math.max(...allReturns);
+  console.log("Max Return % from DB:", maxReturn);
+  }
+
+
   // Map rows to objects for Tabulator
   const rows = dataQuery[0].values.map(row => {
     const obj = {};
