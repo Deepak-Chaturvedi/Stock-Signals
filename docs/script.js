@@ -135,7 +135,8 @@ function renderTable(data, columns) {
         sorterFunc = (a, b, aRow, bRow, column, dir, sorterParams) => {
           const toNum = val => {
             if (typeof val === "string") {
-              return parseFloat(val.replace("%", "").replace(",", "")) || 0;
+              // return parseFloat(val.replace("%", "").replace(",", "")) || 0;
+              return parseFloat(val.replace(/[^\d.-]/g, "")) || 0; // remove ALL non-numeric chars
             }
             return val || 0;
           };
