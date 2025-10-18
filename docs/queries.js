@@ -29,6 +29,5 @@ SELECT DISTINCT
     ON A.Symbol = B.Symbol
   WHERE B.EXCHANGE != 'BSE'
   ORDER BY  7 DESC,8 DESC,9 DESC,10 DESC,11 DESC,12 DESC,13 DESC;
-
 `;
 // script.js
