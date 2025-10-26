@@ -10,7 +10,7 @@
 //   ORDER BY "Signal Date" DESC, A.AD_Slope DESC, A.Avg_Volume_Spike DESC;
 
 window.QUERY_SIGNAL_ACCUMULATION = `
-  SELECT DISTINCT 
+SELECT DISTINCT 
   A.Symbol, 
   B.COMPANY_NAME AS Name,
   a.Signal_Type as 'Signal Type',
@@ -28,7 +28,8 @@ window.QUERY_SIGNAL_ACCUMULATION = `
   LEFT JOIN COMPANY_DETAILS AS B
     ON A.Symbol = B.Symbol
   WHERE B.EXCHANGE != 'BSE'
-  ORDER BY  7 DESC,8 DESC,9 DESC,10 DESC,11 DESC,12 DESC,13 DESC;
+  ORDER BY DATE(A.Signal_date) DESC
+  ;
 `;
-
 // script.js
+//ORDER BY  7 DESC,8 DESC,9 DESC,10 DESC,11 DESC,12 DESC,13 DESC
