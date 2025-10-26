@@ -92,7 +92,8 @@ def filter_accumulation(accumulation_df):
         (accumulation_df['20ema'] > accumulation_df['50ema']) &
         (accumulation_df['50ema'] < accumulation_df['200ema']) &
         (accumulation_df['Close'] > accumulation_df['50ema']) &
-        (accumulation_df['7dv'] >= 1.5 * accumulation_df['30dv'])
+        (accumulation_df['7dv'] >= 1.5 * accumulation_df['30dv']) &
+        (accumulation_df['Accumulating'] == True) # Added on 26Oct2025
     ]
     return accum_df.sort_values('AD_Slope', ascending=False).reset_index(drop=True)
 
