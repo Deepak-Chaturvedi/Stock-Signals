@@ -95,7 +95,9 @@ def filter_accumulation(accumulation_df):
         (accumulation_df['7dv'] >= 1.5 * accumulation_df['30dv']) &
         (accumulation_df['Accumulating'] == True) # Added on 26Oct2025
     ]
-    return accum_df.sort_values('AD_Slope', ascending=False).reset_index(drop=True)
+    # return accum_df.sort_values('AD_Slope', ascending=False).reset_index(drop=True)
+    return accum_df.sort_values(by=['Avg_Volume_Spike','AD_Slope'], ascending=[False,False]).reset_index(drop=True)
+
 
 
 def save_accumulation_to_db(accum_df, db_path, table_name='SIGNAL_ACCUMULATION_STEADY'):
