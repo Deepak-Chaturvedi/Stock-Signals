@@ -28,7 +28,7 @@ SELECT DISTINCT
   LEFT JOIN COMPANY_DETAILS AS B
     ON A.Symbol = B.Symbol
   WHERE B.EXCHANGE != 'BSE'
-  ORDER BY DATE(A.Signal_date) DESC
+  ORDER BY DATE(A.Signal_date) DESC, A.Signal_Rank ASC
   ;
 `;
 // script.js

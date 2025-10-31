@@ -1,3 +1,4 @@
 data/5YearStockData.csv
 # Exclude the 'build' directory and its contents
 venv/
+src\__pycache__/
