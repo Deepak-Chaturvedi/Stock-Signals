@@ -3,6 +3,7 @@
 Buy & Sell Signal Tracker for Indian Stocks (Educational Project)
 
 
+
 🧠 Overview
 
 Stock Signals is an educational and hobby project that demonstrates how trading signals can be generated using technical indicators on publicly available market data.
@@ -12,6 +13,7 @@ The system updates signals automatically each trading day at 9:30 PM IST and cur
 📊 Accumulation / Distribution Patterns
 
 This project was created purely for academic learning, research, and demonstration purposes, allowing users to explore data engineering, automation, and visualization concepts in a financial context.
+
 
 
 
