@@ -288,7 +288,7 @@ def save_EMA_signal_to_db(ema_sig_df, db_path, table_name='SIGNAL_EMA_CROSS'):
         success = True
 
     except Exception as e:
-        print(f"❌ Error saving EMA signals: {e}")
+        print(f"❌ Error saving EMA signals : {e}")
         success = False
         raise
 
