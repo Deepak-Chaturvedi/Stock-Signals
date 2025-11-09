@@ -224,9 +224,9 @@ def generate_signal_returns(db_path, stock_df):
         # combined_df = combine_with_existing(conn, returns_df)
         new_records = get_new_records_only(conn, returns_df)
         
-        print("🧩 Columns in signals_df before saving:", signals_df.columns.tolist())
-        print("🧩 Columns in merged_df before saving:", merged_df.columns.tolist())
-        print("🧩 Columns in new_records before saving:", new_records.columns.tolist())
+        # print("🧩 Columns in signals_df before saving:", signals_df.columns.tolist())
+        # print("🧩 Columns in merged_df before saving:", merged_df.columns.tolist())
+        # print("🧩 Columns in new_records before saving:", new_records.columns.tolist())
 
         try:
             new_records.to_sql('SIGNAL_RETURNS', conn, if_exists='append', index=False)
