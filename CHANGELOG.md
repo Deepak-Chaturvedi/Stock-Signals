@@ -4,6 +4,7 @@ All notable changes to this project will be documented here.
 
 ## [1.1.0] - 2025-11-09
 ### Added
+- Added `generate_ema_signals()` to add ema_crossovers in past 30 days into the Database
 - Added `clean_signal_columns()` function to sanitize signal-related columns before saving to SQLite.
 - Integrated NaN-safe handling in `generate_ema_signals()` pipeline.
 - Ensured text/date fields are blank instead of `NaN` or `None`.
