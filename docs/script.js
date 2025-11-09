@@ -1,6 +1,45 @@
 // script.js
 // Deepak-Chaturvedi/Stock-Signals
 
+// ==========================================================
+// ⚠️ SEBI COMPLIANCE DISCLAIMER BANNER
+// ==========================================================
+
+// Create the banner container
+const disclaimerBanner = document.createElement("div");
+
+// Set the HTML content (you can customize wording)
+disclaimerBanner.innerHTML = `
+  ⚠️ <strong>Disclaimer:</strong> This website and the signals shown here are for 
+  <strong>educational and informational purposes only</strong>. 
+  The creator is <strong>not registered with SEBI</strong>, and 
+  this content does <strong>not constitute investment advice</strong>. 
+  Please consult a <strong>SEBI-registered investment adviser</strong> before making any financial decisions.
+`;
+
+// Apply CSS styling for visibility and compliance
+Object.assign(disclaimerBanner.style, {
+  backgroundColor: "#fff3cd",     // Yellow background (like a warning)
+  color: "#856404",               // Dark text color
+  border: "1px solid #ffeeba",    // Border color
+  padding: "12px 20px",           // Space around text
+  fontSize: "15px",
+  textAlign: "center",
+  fontWeight: "500",
+  lineHeight: "1.5",
+  position: "sticky",             // Stays at top when scrolling
+  top: "0",
+  zIndex: "9999",                 // Always on top of other elements
+  width: "100%",
+});
+
+// Add the banner to the top of the page
+document.addEventListener("DOMContentLoaded", () => {
+  document.body.prepend(disclaimerBanner);
+});
+
+
+
 // --- STEP 1: Load SQLite DB from GitHub and initialize SQL.js ---
 async function loadDatabase() {
   const sqlPromise = initSqlJs({
