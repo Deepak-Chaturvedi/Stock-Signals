@@ -6,7 +6,8 @@ import numpy as np
 import datetime
 import time
 import yfinance as yf
-
+import sqlite3
+import pandas as pd
 
 # ============================================================
 # EMA SIGNAL GENERATION
@@ -146,6 +147,11 @@ def generate_ema_signals(df, analysis_period=60, vol_thresh=1.5, output_period=3
     cmo_df = calculate_cmo(df)
     ad_df = calculate_ad(df)
 
+    # Add Chande Momentum Oscillator (CMO) to signals
+    price_cross = price_cross.merge(cmo_df[["Ticker", "Date", "CMO"]], on=["Ticker", "Date"], how="left")
+    golden_cross = golden_cross.merge(cmo_df[["Ticker", "Date", "CMO"]], on=["Ticker", "Date"], how="left")
+
+
     for s in [price_cross, golden_cross]:
         s.merge(cmo_df[["Ticker", "Date", "CMO"]], on=["Ticker", "Date"], how="left")
 
@@ -158,14 +164,16 @@ def generate_ema_signals(df, analysis_period=60, vol_thresh=1.5, output_period=3
     join_vars = [
         "SYMBOL", "currentPrice", "Capitalization", "MCapCrore", "upFrom52wlow", "debtToEquity",
         "priceToBook", "trailingPE", "trailingEps", "priceToSalesTrailing12Months",
-        "PricetoCash", "update_date" , "beta"
+        "PricetoCash", "update_date" , "beta", "totalCashPerShare"
     ]
     ema_df = ema_signal.merge(meta_df[join_vars], how="left", left_on="Symbol", right_on="SYMBOL")
 
     # --- Step 4: Filtering ---
     # ema_df = ema_df.dropna(subset=["trailingEps", "marketCap"])
-    ema_df = ema_df[(ema_df["trailingEps"] > 0) & (ema_df["debtToEquity"] <= 2.0) & (ema_df["MCapCrore"] >= 200)]
-    ema_df = ema_df[ema_df["trailingPE"] <= 100].drop_duplicates()
+    # ema_df = ema_df[(ema_df["trailingEps"] > 0) & (ema_df["debtToEquity"] <= 2.0) & (ema_df["MCapCrore"] >= 200)]
+    # ema_df = ema_df[ema_df["trailingPE"] <= 100].drop_duplicates()
+
+    ema_df.drop(ema_df[ema_df['MCapCrore'] < 200].index, inplace=True, axis=0) # Market cap should be more than 200 Cr
 
     # --- Step 5: Add FnO flag ---
     # if fno is not None:
@@ -179,6 +187,34 @@ def generate_ema_signals(df, analysis_period=60, vol_thresh=1.5, output_period=3
     ema_df["Date_1"] = ema_df["Date_1"].dt.strftime("%Y-%m-%d")
     ema_df["Date_2"] = ema_df["Date_2"].dt.strftime("%Y-%m-%d")
 
+    ema_df['trailingPE'] = pd.to_numeric(ema_df['trailingPE'], errors='coerce')
+    ema_df['priceToBook'] = pd.to_numeric(ema_df['priceToBook'], errors='coerce')
+    ema_df['PBXPE'] = ema_df['trailingPE'] * ema_df['priceToBook']
+
+ 
+    ema_df.rename(columns={'volume_change_1': 'Vol1', 'volume_change_2': 'Vol2',
+                          'MCapCrore': 'MCap', 'trailingPE': 'PE', 'priceToBook': 'PB','trailingEps':'EPS',
+                          'priceToSalesTrailing12Months': 'PS','totalCashPerShare':'CashperShare'
+                          ,'update_date' :'update date','CMO_1': 'Mom1','CMO_2': 'Mom2'},inplace=True)
+
+    keep_columns = ["Symbol","signal_1","Date_1","Price_1","7dratio_1","30dratio_1","Vol1","Mom1","signal_2","Date_2",
+                    "Price_2","7dratio_2","30dratio_2","Vol2","Mom2","currentPrice","Capitalization","MCap","upFrom52wlow",
+                    "PE","PB","PBXPE","debtToEquity","PS","PricetoCash","EPS","CashperShare","update date","beta",
+                    "AD","AD_50"]
+    
+    ema_df = ema_df[keep_columns]
+    
+    #ROund off the numeric columns
+    var1 = ['Price_1','Price_2','MCap','PB','PE','EPS','PricetoCash',
+        'currentPrice','PBXPE','CashperShare','Mom1','Mom2']
+    var2 = ['7dratio_1','30dratio_1','Vol1','7dratio_2','30dratio_2','Vol2','PS',
+        'upFrom52wlow','debtToEquity','beta']
+    ema_df[var1] = ema_df[var1].round(0)
+    ema_df[var2] = ema_df[var2].round(2)
+
+    ema_df = clean_dataframe_for_sqlite(ema_df)
+
+
     cutoff = (datetime.datetime.today() - datetime.timedelta(days=output_period)).strftime("%Y-%m-%d")
     rec_df = ema_df[(ema_df["Date_1"] >= cutoff) | (ema_df["Date_2"] >= cutoff)]
 
@@ -188,6 +224,130 @@ def generate_ema_signals(df, analysis_period=60, vol_thresh=1.5, output_period=3
 
     print(f"✅ Final signals: {len(long_stocks)} long | {len(short_stocks)} short")
     return long_stocks, short_stocks, ema_df
+
+
+
+def save_EMA_signal_to_db(ema_sig_df, db_path, table_name='SIGNAL_EMA_CROSS'):
+    """
+    Append EMA crossover signals DataFrame (from generate_ema_signals) to SQLite database.
+
+    - Removes duplicates based on ['Symbol', 'signal_2', 'Date_2', 'update date']
+    - Keeps the most recent record based on 'update date'
+    - Sorts by 'Date_2' descending
+    - Overwrites the table with the clean, updated version
+    """
+
+    conn = sqlite3.connect(db_path)
+    success = False
+
+    try:
+        # Step 1: Load existing table (if exists)
+        try:
+            existing_df = pd.read_sql_query(f"SELECT * FROM {table_name}", conn)
+        except Exception:
+            existing_df = pd.DataFrame()
+
+        # Step 2: Normalize incoming data
+        ema_sig_df = ema_sig_df.copy()
+        if "Date_2" in ema_sig_df.columns:
+            ema_sig_df["Date_2"] = pd.to_datetime(ema_sig_df["Date_2"], errors="coerce")
+        if "Symbol" in ema_sig_df.columns:
+            ema_sig_df["Symbol"] = ema_sig_df["Symbol"].astype(str).str.strip()
+
+        # Step 3: Normalize existing data (if any)
+        if not existing_df.empty:
+            if "Date_2" in existing_df.columns:
+                existing_df["Date_2"] = pd.to_datetime(existing_df["Date_2"], errors="coerce")
+            if "Symbol" in existing_df.columns:
+                existing_df["Symbol"] = existing_df["Symbol"].astype(str).str.strip()
+
+        # Step 4: Combine both datasets
+        combined_df = pd.concat([existing_df, ema_sig_df], ignore_index=True)
+
+        # Step 5: Drop duplicates — keep latest based on update date
+        if {"Symbol", "signal_2", "Date_2", "update date"}.issubset(combined_df.columns):
+            combined_df.sort_values(by=["update date"], ascending=False, inplace=True)
+            combined_df.drop_duplicates(
+                subset=["Symbol", "signal_2", "Date_2"],
+                keep="first",
+                inplace=True
+            )
+        else:
+            print("⚠️ One or more deduplication columns missing — skipping duplicate removal.")
+
+        # Step 6: Sort by signal date descending
+        if "Date_2" in combined_df.columns:
+            combined_df.sort_values(by="Date_2", ascending=False, inplace=True)
+
+        # Step 7: Write back to DB (replace)
+        combined_df.to_sql(table_name, conn, if_exists="replace", index=False)
+        conn.commit()
+
+        print(f"✅ Saved {len(ema_sig_df)} new EMA signal records to {table_name}")
+        print(f"📦 Table now has {len(combined_df)} total records.")
+        success = True
+
+    except Exception as e:
+        print(f"❌ Error saving EMA signals: {e}")
+        success = False
+        raise
+
+    finally:
+        conn.close()
+
+    return success
+
+
+
+import pandas as pd
+import numpy as np
+
+def clean_signal_columns(df):
+    """
+    Clean only the signal-related columns in a DataFrame before saving to SQLite.
+    - Replace NaN/None/NaT with blank '' for text/date fields
+    - Keep numeric NaNs untouched (even if dtype is misclassified)
+    - Safe for SQLite export
+    """
+
+    df = df.copy()
+
+    # Columns that should be cleaned for blanks
+    text_cols = ["signal_1", "Date_1", "signal_2", "Date_2"]
+
+    # Columns that are numeric — should never be touched
+    numeric_cols = ["Price_1", "7dratio_1", "30dratio_1", "Vol1", "Mom1",
+                    "Price_2", "7dratio_2", "30dratio_2", "Vol2", "Mom2"]
+
+    # Step 1: Clean only text/date columns
+    for col in text_cols:
+        if col in df.columns:
+            df[col] = (
+                df[col]
+                .astype(str)
+                .replace(
+                    {
+                        "NaT": "",
+                        "nan": "",
+                        "None": "",
+                        "NA": "",
+                        pd.NA: "",
+                        np.nan: "",
+                        "<NA>": "",
+                    }
+                )
+                .fillna("")
+            )
+
+    # Step 2: Ensure numeric columns remain numeric (no coercion)
+    for col in numeric_cols:
+        if col in df.columns:
+            # Explicitly convert to numeric again (forces dtype correction)
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    return df
+
+
 
 
 # ============================================================
