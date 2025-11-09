@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented here.
 
-## [1.1.1] - 2025-11-010
+## [1.1.1] - 2025-11-10
 ### Fixed
 - Refreshed stock database and notebook outputs to reflect analysis on a larger set of tickers and a shorter analysis period (15 days).
 - Updated signal generation,  and error handling for failed downloads. 
