@@ -5,37 +5,52 @@
 // ⚠️ SEBI COMPLIANCE DISCLAIMER BANNER
 // ==========================================================
 
-// Create the banner container
-const disclaimerBanner = document.createElement("div");
 
-// Set the HTML content (you can customize wording)
-disclaimerBanner.innerHTML = `
-  ⚠️ <strong>Disclaimer:</strong> This website and the signals shown here are for 
-  <strong>educational and informational purposes only and does not constitute investment advice</strong>. 
-  Please consult a <strong>SEBI-registered investment adviser</strong> before making any financial decisions.
-`;
-
-// Apply CSS styling for visibility and compliance
-Object.assign(disclaimerBanner.style, {
-  backgroundColor: "#fff3cd",     // Yellow background (like a warning)
-  color: "#856404",               // Dark text color
-  border: "1px solid #ffeeba",    // Border color
-  padding: "12px 20px",           // Space around text
-  fontSize: "15px",
-  textAlign: "center",
-  fontWeight: "500",
-  lineHeight: "1.5",
-  position: "sticky",             // Stays at top when scrolling
-  top: "0",
-  zIndex: "9999",                 // Always on top of other elements
-  width: "100%",
-});
-
-// Add the banner to the top of the page
 document.addEventListener("DOMContentLoaded", () => {
-  document.body.prepend(disclaimerBanner);
-});
+  // Create the banner container
+  const disclaimerBanner = document.createElement("div");
 
+  // Add disclaimer content
+  disclaimerBanner.innerHTML = `
+    <span style="flex: 1;">
+      ⚠️ <strong>Disclaimer:</strong> For educational use only and does not constitute investment advice. 
+      Consult a SEBI registered investment adviser before making any financial decisions.
+    </span>
+    <button id="closeDisclaimer" 
+      style="background:none; border:none; color:#721c24; font-weight:bold; cursor:pointer; margin-left:10px;">
+      ✖
+    </button>
+  `;
+
+ // Apply styling
+  Object.assign(disclaimerBanner.style, {
+    backgroundColor: "#f8d7da",  // Light red background
+    color: "#721c24",            // Dark red text
+    border: "1px solid #f5c6cb",
+    padding: "10px 15px",
+    fontSize: "13px",
+    textAlign: "center",
+    fontWeight: "500",
+    lineHeight: "1.5",
+    position: "sticky",
+    top: "0",
+    zIndex: "9999",
+    width: "100%",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    flexWrap: "wrap",            // ✅ Mobile responsive
+  });
+
+  // Add banner to top of page
+  document.body.prepend(disclaimerBanner);
+
+  // Close button functionality
+  const closeBtn = document.getElementById("closeDisclaimer");
+  closeBtn.addEventListener("click", () => {
+    disclaimerBanner.style.display = "none";
+  });
+});
 
 
 // --- STEP 1: Load SQLite DB from GitHub and initialize SQL.js ---
