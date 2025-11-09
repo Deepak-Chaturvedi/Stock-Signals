@@ -91,41 +91,117 @@ def calculate_ad(df):
 # ============================================================
 # STOCK METADATA FETCHER
 # ============================================================
-def get_stock_metadata(symbols, sleep_time=2):
-    """Fetch stock metadata from Yahoo Finance."""
+import pandas as pd
+import yfinance as yf
+import time
+import random
+from pathlib import Path
+
+def get_stock_metadata(symbols, sleep_time=0.5, max_retries=2, cache_path=None):
+    """
+    Fetch stock metadata from Yahoo Finance with retry, error handling, and optional caching.
+
+    Parameters
+    ----------
+    symbols : list
+        List of stock symbols (without .NS suffix)
+    sleep_time : int, optional
+        Delay between API calls to avoid rate limits (default 2s)
+    max_retries : int, optional
+        Number of times to retry a failed fetch
+    cache_path : str or Path, optional
+        Path to a CSV cache file; if provided, previously fetched symbols will be reused
+
+    Returns
+    -------
+    pd.DataFrame
+        Cleaned metadata for available symbols
+    """
+
     fields = [
         "symbol", "currentPrice", "marketCap", "52WeekChange", "debtToEquity", "priceToBook",
         "trailingPE", "fiftyTwoWeekLow", "fiftyTwoWeekHigh", "trailingEps",
         "priceToSalesTrailing12Months", "totalCashPerShare", "beta"
     ]
+
+    # ✅ Step 1: Load cache if provided
+    cache_df = pd.DataFrame()
+    if cache_path and Path(cache_path).exists():
+        cache_df = pd.read_csv(cache_path)
+        cached_symbols = set(cache_df["SYMBOL"].unique())
+        symbols = [s for s in symbols if s not in cached_symbols]
+        print(f"♻️ Using cached data for {len(cached_symbols)} symbols, fetching {len(symbols)} new.")
+    else:
+        cached_symbols = set()
+
     stock_data = []
 
+    # ✅ Step 2: Fetch metadata with retry logic
     for sym in symbols:
-        try:
-            info = yf.Ticker(sym + ".NS").info
-            stock_data.append({field: info.get(field) for field in fields})
-            time.sleep(sleep_time)
-        except Exception as e:
-            print(f"⚠️ Error fetching {sym}: {e}")
+        full_sym = sym + ".NS"
+        attempt = 0
+        success = False
+        info = {}
 
-    df_meta = pd.DataFrame(stock_data).drop_duplicates()
+        while attempt < max_retries and not success:
+            try:
+                info = yf.Ticker(full_sym).info or {}
+                record = {field: info.get(field) for field in fields}
+                record["symbol"] = full_sym  # Always include
+                stock_data.append(record)
+                success = True
+                time.sleep(sleep_time + random.uniform(0.3, 1.2))  # Random delay
+            except Exception as e:
+                attempt += 1
+                wait = sleep_time * (2 ** attempt)
+                print(f"⚠️ Error fetching {sym} (attempt {attempt}/{max_retries}): {e}")
+                time.sleep(wait)
+
+        if not success:
+            print(f"❌ Failed to fetch {sym} after {max_retries} retries.")
+
+    # ✅ Step 3: Build DataFrame
+    df_meta = pd.DataFrame(stock_data).drop_duplicates(subset=["symbol"], keep="last")
+
+    if df_meta.empty and cache_df.empty:
+        print("⚠️ No metadata fetched. Check your internet connection or Yahoo Finance rate limit.")
+        return pd.DataFrame()
+
+    # ✅ Step 4: Derive calculated fields
     df_meta["SYMBOL"] = df_meta["symbol"].str.replace(".NS", "", regex=False)
     df_meta["update_date"] = pd.Timestamp.today().strftime("%Y-%m-%d")
 
-    # Derived columns
-    df_meta["debtToEquity"] = df_meta["debtToEquity"] / 100
+    # Fill numeric NaNs safely
+    num_cols = df_meta.select_dtypes(include=["number"]).columns
+    df_meta[num_cols] = df_meta[num_cols].fillna(0)
+
+    # Derived metrics
     df_meta["MCapCrore"] = (df_meta["marketCap"] / 1e7).round(2)
+    df_meta["debtToEquity"] = df_meta["debtToEquity"] / 100
     df_meta["upFrom52wlow"] = (df_meta["currentPrice"] - df_meta["fiftyTwoWeekLow"]) / (
-        df_meta["fiftyTwoWeekHigh"] - df_meta["fiftyTwoWeekLow"]
+        (df_meta["fiftyTwoWeekHigh"] - df_meta["fiftyTwoWeekLow"]).replace(0, pd.NA)
     )
 
     bins = [-float("inf"), 500, 1000, 5000, 20000, float("inf")]
     labels = ["Nano Cap", "Micro Cap", "Small Cap", "Mid Cap", "Large Cap"]
     df_meta["Capitalization"] = pd.cut(df_meta["MCapCrore"], bins=bins, labels=labels)
 
-    df_meta["PricetoCash"] = df_meta["currentPrice"] / df_meta["totalCashPerShare"]
-    print(f"✅ Metadata fetched for {len(df_meta)} stocks")
+    df_meta["PricetoCash"] = df_meta["currentPrice"] / df_meta["totalCashPerShare"].replace(0, pd.NA)
+
+    # ✅ Step 5: Merge cache (if used)
+    if not cache_df.empty:
+        df_meta = pd.concat([cache_df, df_meta], ignore_index=True).drop_duplicates(
+            subset=["SYMBOL"], keep="last"
+        )
+
+    # ✅ Step 6: Save cache
+    if cache_path:
+        df_meta.to_csv(cache_path, index=False)
+        print(f"💾 Cached metadata saved to {cache_path}")
+
+    print(f"✅ Metadata fetched for {len(df_meta)} total stocks")
     return df_meta
+
 
 
 # ============================================================
@@ -158,6 +234,9 @@ def generate_ema_signals(df, analysis_period=60, vol_thresh=1.5, output_period=3
     ema_signal = pd.merge(price_cross, golden_cross, on="Symbol", how="outer", suffixes=("_1", "_2"))
     ema_signal = ema_signal.merge(ad_df, left_on=["Date_2", "Symbol"], right_on=["Date", "Symbol"], how="left")
     ema_signal.drop(columns=["Date"], inplace=True)
+
+
+    # print(ema_signal.columns)
 
     # --- Step 3: Metadata ---
     meta_df = get_stock_metadata(ema_signal.Symbol.unique())
@@ -212,7 +291,8 @@ def generate_ema_signals(df, analysis_period=60, vol_thresh=1.5, output_period=3
     ema_df[var1] = ema_df[var1].round(0)
     ema_df[var2] = ema_df[var2].round(2)
 
-    ema_df = clean_dataframe_for_sqlite(ema_df)
+    # Clean signal columns for SQLite export
+    # ema_df = clean_signal_columns(ema_df)
 
 
     cutoff = (datetime.datetime.today() - datetime.timedelta(days=output_period)).strftime("%Y-%m-%d")
