@@ -11,9 +11,7 @@ const disclaimerBanner = document.createElement("div");
 // Set the HTML content (you can customize wording)
 disclaimerBanner.innerHTML = `
   ⚠️ <strong>Disclaimer:</strong> This website and the signals shown here are for 
-  <strong>educational and informational purposes only</strong>. 
-  The creator is <strong>not registered with SEBI</strong>, and 
-  this content does <strong>not constitute investment advice</strong>. 
+  <strong>educational and informational purposes only and does not constitute investment advice</strong>. 
   Please consult a <strong>SEBI-registered investment adviser</strong> before making any financial decisions.
 `;
 
