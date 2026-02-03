@@ -46,44 +46,6 @@ def load_signals_from_db(conn):
     print(f"✅ Total signals loaded: {df.shape[0]}")
     return df
 
-# ============================================================
-# NEW MODULE - CORPORATE ACTION PRICE CHECK
-# ============================================================
-
-from datetime import timedelta
-import numpy as np
-import pandas as pd
-
-
-def update_signal_prices_for_corporate_actions(signals_df, stock_df, threshold=0.01):
-    """
-    Update signal prices based on corporate actions by comparing with current stock prices.
-    """
-
-    stock_df["Date"] = pd.to_datetime(stock_df["Date"])
-
-    signals_df["Signal_date"] = pd.to_datetime(signals_df["Signal_date"])
-    signals_df["Updated_Signal_Price"] = np.nan
-
-    merged = pd.merge(
-        signals_df,
-        stock_df[["Symbol", "Date", "Close"]],
-        left_on=["Symbol", "Signal_date"],
-        right_on=["Symbol", "Date"],
-        how="left"
-    )
-    merged["Updated_Signal_Price"] = merged['Close']
-
-    # print(merged.head())
-
-    merged.drop(columns=["Date", "Close"], inplace=True)
-
-    print(f"🔄 Corporate action adjustments applied to {sum(merged['Updated_Signal_Price'] != merged['Signal_Price'])} signals")
-    return merged
-
-
-
-
 def merge_signals_with_prices(signals_df, stock_df):
     """Join signal data with stock prices to get post-signal price evolution."""
     format_stock_df = stock_df[["Symbol", "Date", "Close"]].copy()
@@ -256,17 +218,11 @@ def generate_signal_returns(db_path, stock_df):
         conn = sqlite3.connect(db_path)
 
         signals_df = load_signals_from_db(conn)
-
-        # Step 2: Adjust signal prices for corporate actions
-        signals_df = update_signal_prices_for_corporate_actions(signals_df, stock_df)
-
-        print(signals_df.head())
         merged_df = merge_signals_with_prices(signals_df, stock_df)
         returns_df = calculate_returns(merged_df)
 
-        new_records = get_new_records_only(conn, returns_df) 
-        # new_records = returns_df # For now, we will replace the entire table
-
+        # combined_df = combine_with_existing(conn, returns_df)
+        new_records = get_new_records_only(conn, returns_df)
         
         # print("🧩 Columns in signals_df before saving:", signals_df.columns.tolist())
         # print("🧩 Columns in merged_df before saving:", merged_df.columns.tolist())
