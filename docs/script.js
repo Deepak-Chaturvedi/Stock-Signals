@@ -202,14 +202,26 @@ function createFilters(data, columns) {
 
 let table; // global reference
 
+// --- Save & Get page size from localStorage ---
+function getSavedPageSize() {
+  return parseInt(localStorage.getItem("pageSize")) || 25;
+}
+
 // --- Render table with Tabulator (fixed sorting) ---
 function renderTable(data, columns) {
   table = new Tabulator("#table", {
     data: data,
-    layout: "fitDataStretch",
+    // 🔹 Layout & UX
+    layout: "fitDataFill",
+    height: "70vh",              // REQUIRED for sticky headers
+    headerVisible: true,
+
+    // 🔹 Pagination
     pagination: "local",
-    paginationSize: 25,
+    paginationSize: getSavedPageSize(),
     paginationSizeSelector: [15, 25, 50, 100, true],
+    pagination: "local",
+
     columns: columns.map(c => {
       let sorterType = "string";
       let sorterFunc = undefined;
@@ -249,6 +261,11 @@ function renderTable(data, columns) {
   if (dateCol) {
     table.setSort([{ column: dateCol, dir: "desc" }]);
   }
+
+   // 🔹 Remember page size preference
+  table.on("pageSizeChanged", size => {
+    localStorage.setItem("pageSize", size);
+  });
 }
 
 
@@ -269,6 +286,16 @@ function applyFilters() {
     if (dateCol) table.addFilter(dateCol.getField(), "=", dateVal);
   }
 }
+
+// --- Download Data button ---
+document.getElementById("downloadCSV")?.addEventListener("click", () => {
+  if (!table) return;
+
+  table.download("csv", "stock_signals.csv", {
+    delimiter: ",",
+    bom: true, // Excel-safe
+  });
+});
 
 // --- Auto load data on page load ---
 window.addEventListener("DOMContentLoaded", loadDatabase);
