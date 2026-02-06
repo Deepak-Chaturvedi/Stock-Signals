@@ -52,6 +52,35 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+// ==========================================================
+// Get last updated date based on the latest "current_date" in the data
+function updateLastUpdatedFromDB(db) {
+  try {
+    const result = db.exec(`
+      SELECT MAX(current_date) AS max_date
+      FROM SIGNAL_RETURNS;
+    `);
+
+    if (!result.length || !result[0].values.length) return;
+
+    const maxDateRaw = result[0].values[0][0];
+    if (!maxDateRaw) return;
+
+    const formatted = new Date(maxDateRaw).toLocaleDateString("en-IN", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    const el = document.getElementById("lastUpdated");
+    if (el) {
+      el.textContent = `Data updated as on ${formatted}`;
+    }
+  } catch (err) {
+    console.error("Failed to read max(current_date):", err);
+  }
+}
+
 
 // --- STEP 1: Load SQLite DB from GitHub and initialize SQL.js ---
 async function loadDatabase() {
@@ -76,6 +105,10 @@ async function loadDatabase() {
   const [SQL, buf] = await Promise.all([sqlPromise, dataPromise]);
   const db = new SQL.Database(new Uint8Array(buf));
 
+
+    // ✅ Update "Data updated as on"
+  updateLastUpdatedFromDB(db);
+  
   // --- STEP 2: Query your specific table ---
   const tableName = "SIGNAL_RETURNS"; // ✅ matches the new query source table
 
