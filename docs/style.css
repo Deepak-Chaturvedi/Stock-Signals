@@ -25,3 +25,12 @@ canvas {
   margin: 40px auto;
   max-width: 90%;
 }
+
+.last-updated {
+  text-align: right;
+  font-size: 13px;
+  color: #555;
+  margin-top: -10px;
+  margin-right: 20px;
+}
+

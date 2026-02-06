@@ -74,7 +74,7 @@ function updateLastUpdatedFromDB(db) {
 
     const el = document.getElementById("lastUpdated");
     if (el) {
-      el.textContent = `Data updated as on ${formatted}`;
+      el.textContent = `Data updated : ${formatted}`;
     }
   } catch (err) {
     console.error("Failed to read max(current_date):", err);
@@ -108,7 +108,7 @@ async function loadDatabase() {
 
     // ✅ Update "Data updated as on"
   updateLastUpdatedFromDB(db);
-  
+
   // --- STEP 2: Query your specific table ---
   const tableName = "SIGNAL_RETURNS"; // ✅ matches the new query source table
 
