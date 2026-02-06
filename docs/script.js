@@ -52,6 +52,35 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+// ==========================================================
+// Get last updated date based on the latest "current_date" in the data
+function updateLastUpdatedFromDB(db) {
+  try {
+    const result = db.exec(`
+      SELECT MAX(current_date) AS max_date
+      FROM SIGNAL_RETURNS;
+    `);
+
+    if (!result.length || !result[0].values.length) return;
+
+    const maxDateRaw = result[0].values[0][0];
+    if (!maxDateRaw) return;
+
+    const formatted = new Date(maxDateRaw).toLocaleDateString("en-IN", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    const el = document.getElementById("lastUpdated");
+    if (el) {
+      el.textContent = `Data updated : ${formatted}`;
+    }
+  } catch (err) {
+    console.error("Failed to read max(current_date):", err);
+  }
+}
+
 
 // --- STEP 1: Load SQLite DB from GitHub and initialize SQL.js ---
 async function loadDatabase() {
@@ -75,6 +104,10 @@ async function loadDatabase() {
 
   const [SQL, buf] = await Promise.all([sqlPromise, dataPromise]);
   const db = new SQL.Database(new Uint8Array(buf));
+
+
+    // ✅ Update "Data updated as on"
+  updateLastUpdatedFromDB(db);
 
   // --- STEP 2: Query your specific table ---
   const tableName = "SIGNAL_RETURNS"; // ✅ matches the new query source table
@@ -169,13 +202,26 @@ function createFilters(data, columns) {
 
 let table; // global reference
 
+// --- Save & Get page size from localStorage ---
+function getSavedPageSize() {
+  return parseInt(localStorage.getItem("pageSize")) || 25;
+}
+
 // --- Render table with Tabulator (fixed sorting) ---
 function renderTable(data, columns) {
   table = new Tabulator("#table", {
     data: data,
-    layout: "fitDataStretch",
+    // 🔹 Layout & UX
+    layout: "fitDataFill",
+    height: "70vh",              // REQUIRED for sticky headers
+    headerVisible: true,
+
+    // 🔹 Pagination
     pagination: "local",
-    paginationSize: 15,
+    paginationSize: getSavedPageSize(),
+    paginationSizeSelector: [15, 25, 50, 100, true],
+    pagination: "local",
+
     columns: columns.map(c => {
       let sorterType = "string";
       let sorterFunc = undefined;
@@ -215,6 +261,11 @@ function renderTable(data, columns) {
   if (dateCol) {
     table.setSort([{ column: dateCol, dir: "desc" }]);
   }
+
+   // 🔹 Remember page size preference
+  table.on("pageSizeChanged", size => {
+    localStorage.setItem("pageSize", size);
+  });
 }
 
 
@@ -235,6 +286,16 @@ function applyFilters() {
     if (dateCol) table.addFilter(dateCol.getField(), "=", dateVal);
   }
 }
+
+// --- Download Data button ---
+document.getElementById("downloadCSV")?.addEventListener("click", () => {
+  if (!table) return;
+
+  table.download("csv", "stock_signals.csv", {
+    delimiter: ",",
+    bom: true, // Excel-safe
+  });
+});
 
 // --- Auto load data on page load ---
 window.addEventListener("DOMContentLoaded", loadDatabase);

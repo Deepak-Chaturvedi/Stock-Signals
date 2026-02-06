@@ -235,7 +235,6 @@ def generate_ema_signals(df, analysis_period=60, vol_thresh=1.5, output_period=3
     ema_signal = ema_signal.merge(ad_df, left_on=["Date_2", "Symbol"], right_on=["Date", "Symbol"], how="left")
     ema_signal.drop(columns=["Date"], inplace=True)
 
-
     # print(ema_signal.columns)
 
     # --- Step 3: Metadata ---
