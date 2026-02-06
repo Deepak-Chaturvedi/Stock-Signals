@@ -208,7 +208,8 @@ function renderTable(data, columns) {
     data: data,
     layout: "fitDataStretch",
     pagination: "local",
-    paginationSize: 15,
+    paginationSize: 25,
+    paginationSizeSelector: [15, 25, 50, 100, true],
     columns: columns.map(c => {
       let sorterType = "string";
       let sorterFunc = undefined;
