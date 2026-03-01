@@ -88,6 +88,9 @@ def detect_gradual_accumulation(df_all,
 
 def filter_accumulation(accumulation_df):
     """Filter stocks that meet additional entry criteria."""
+
+    #tesing 11Feb2025 -debug
+    print(accumulation_df[['Symbol','AD_Slope','Above_20EMA_%','Avg_Volume_Spike','RSI','Accumulating']].head(10))
     accum_df = accumulation_df[
         (accumulation_df['20ema'] > accumulation_df['50ema']) &
         (accumulation_df['50ema'] < accumulation_df['200ema']) &
