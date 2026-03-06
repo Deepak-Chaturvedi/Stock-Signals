@@ -48,12 +48,23 @@ def load_signals_from_db(conn):
 
 def merge_signals_with_prices(signals_df, stock_df):
     """Join signal data with stock prices to get post-signal price evolution."""
+    
+    # ✅ FIX: Flatten MultiIndex columns if yfinance returned them
+    if isinstance(stock_df.columns, pd.MultiIndex):
+        stock_df = stock_df.copy()
+        stock_df.columns = [col[0] if col[1] == '' else col[0] for col in stock_df.columns]
+    
     format_stock_df = stock_df[["Symbol", "Date", "Close"]].copy()
     format_stock_df["Date"] = pd.to_datetime(format_stock_df["Date"])
 
+    # ✅ FIX: Ensure Signal_Price is numeric before merge
+    signals_df["Signal_Price"] = pd.to_numeric(signals_df["Signal_Price"], errors="coerce")
+
     merged = pd.merge(signals_df, format_stock_df, on="Symbol", how="inner")
-    merged = merged[["Symbol", "Signal_date", "Signal_Type", "Signal_Price","Signal_Rank", "Date", "Close"]]
-    merged = merged.dropna()
+    merged = merged[["Symbol", "Signal_date", "Signal_Type", "Signal_Price", "Signal_Rank", "Date", "Close"]]
+    
+    # ✅ FIX: Drop rows where Signal_Price is NaN before any calculations
+    merged = merged.dropna(subset=["Signal_Price"])
     merged = merged[merged["Date"] >= pd.to_datetime(merged["Signal_date"])]
     merged = merged.sort_values(
         by=["Symbol", "Signal_Type", "Signal_date", "Date"],
@@ -63,6 +74,7 @@ def merge_signals_with_prices(signals_df, stock_df):
 
     print(f"✅ Total signals after merging: {merged.shape[0]}")
     return merged
+
 
 def compute_returns(group):
     """Compute returns for a single (Symbol, Signal_Type, Signal_date, Signal_Price, Signal_Rank) group."""
@@ -119,9 +131,17 @@ def calculate_returns(merged_df):
     """Apply return computation across all signal groups."""
     merged_df["Signal_date"] = pd.to_datetime(merged_df["Signal_date"])
     merged_df["Date"] = pd.to_datetime(merged_df["Date"])
+    
+    # ✅ FIX: Ensure Signal_Price has no NaNs before groupby
+    merged_df["Signal_Price"] = pd.to_numeric(merged_df["Signal_Price"], errors="coerce")
+    merged_df = merged_df.dropna(subset=["Signal_Price"])
 
     returns_df = (
-        merged_df.groupby(["Symbol", "Signal_Type", "Signal_date", "Signal_Price","Signal_Rank"], sort=False)
+        merged_df.groupby(
+            ["Symbol", "Signal_Type", "Signal_date", "Signal_Price", "Signal_Rank"],
+            sort=False,
+            dropna=False  # ✅ FIX: prevents KeyError on NaN keys
+        )
         .apply(compute_returns)
         .reset_index(drop=True)
     )
@@ -217,26 +237,39 @@ def generate_signal_returns(db_path, stock_df):
     try:
         conn = sqlite3.connect(db_path)
 
+        # Step 1: Load signals from DB
         signals_df = load_signals_from_db(conn)
+        if signals_df.empty:
+            print("⚠️ No signals found in DB — skipping returns generation.")
+            return True, pd.DataFrame()
+
+        # Step 2: Merge signals with stock prices
         merged_df = merge_signals_with_prices(signals_df, stock_df)
+        if merged_df.empty:
+            print("⚠️ Merged DataFrame is empty — no price data matched signals.")
+            return True, pd.DataFrame()
+
+        # Step 3: Compute returns
         returns_df = calculate_returns(merged_df)
+        if returns_df.empty:
+            print("⚠️ Returns DataFrame is empty after computation.")
+            return True, pd.DataFrame()
 
-        # combined_df = combine_with_existing(conn, returns_df)
+        # Step 4: Filter to only new records not already saved
         new_records = get_new_records_only(conn, returns_df)
-        
-        # print("🧩 Columns in signals_df before saving:", signals_df.columns.tolist())
-        # print("🧩 Columns in merged_df before saving:", merged_df.columns.tolist())
-        # print("🧩 Columns in new_records before saving:", new_records.columns.tolist())
 
-        try:
-            new_records.to_sql('SIGNAL_RETURNS', conn, if_exists='append', index=False)
-            print("💾 SIGNAL_RETURNS table updated successfully.")
-        except Exception as e:
-            conn.rollback()
-            print("Error:", e)
-
-        # combined_df.to_sql("SIGNAL_RETURNS", conn, if_exists="replace", index=False)
-        
+        # Step 5: Save to DB
+        if not new_records.empty:
+            try:
+                new_records.to_sql('SIGNAL_RETURNS', conn, if_exists='append', index=False)
+                conn.commit()
+                print("💾 SIGNAL_RETURNS table updated successfully.")
+            except Exception as e:
+                conn.rollback()
+                print(f"❌ Error saving to SIGNAL_RETURNS: {e}")
+                raise
+        else:
+            print("ℹ️ No new records to save — SIGNAL_RETURNS already up to date.")
 
         return True, new_records
 
