@@ -97,7 +97,7 @@ import time
 import random
 from pathlib import Path
 
-def get_stock_metadata(symbols, sleep_time=0.5, max_retries=2, cache_path=None):
+def get_stock_metadata(symbols, sleep_time=1.5, max_retries=3, cache_path=None):
     """
     Fetch stock metadata from Yahoo Finance with retry, error handling, and optional caching.
 
