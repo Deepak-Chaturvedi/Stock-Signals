@@ -133,6 +133,11 @@ def calculate_returns(merged_df):
     merged_df["Date"] = pd.to_datetime(merged_df["Date"])
     
     # ✅ FIX: Ensure Signal_Price has no NaNs before groupby
+
+    #debug
+    # print("Debug: Checking Signal_Price column before groupby:")
+    print(merged_df["Signal_Price"].head(10)) 
+      
     merged_df["Signal_Price"] = pd.to_numeric(merged_df["Signal_Price"], errors="coerce")
     merged_df = merged_df.dropna(subset=["Signal_Price"])
 
