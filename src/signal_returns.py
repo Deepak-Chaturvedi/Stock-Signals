@@ -82,7 +82,8 @@ def compute_returns(group):
     #debug - 18 mar 2026
     print("DEBUG group columns:", group.columns.tolist())
     print("DEBUG group index names:", group.index.names)
-    group = group.reset_index(drop=True)  # important
+
+    # group = group.reset_index(drop=True)  # important
 
     # if "Signal_Price" not in group.columns:
     #     raise KeyError(f"Signal_Price missing in group. Columns: {group.columns}")
@@ -90,8 +91,8 @@ def compute_returns(group):
     group = group.sort_values("Date").reset_index(drop=True)
 
     # 🔥 Extract from group.name (this is the fix)
-    print("DEBUG group.name:", group.name)
-    symbol, signal_type, sig_date, sig_price, signal_rank = group.name
+    # print("DEBUG group.name:", group.name)
+    # symbol, signal_type, sig_date, sig_price, signal_rank = group.name
 
     # ensure numeric columns before calculation
     group["Price"] = pd.to_numeric(group["Price"], errors="coerce")
@@ -100,21 +101,13 @@ def compute_returns(group):
     sig_date = group.at[0, "Signal_date"]
     sig_price = group.at[0, "Signal_Price"]
 
-    # out = {
-    #     "Symbol": group.at[0, "Symbol"],
-    #     "Signal_Type": group.at[0, "Signal_Type"],
-    #     "Signal_date": sig_date,
-    #     "Signal_Price": sig_price,
-    #     "Signal_Rank": group.at[0, "Signal_Rank"],
-    # }
-
     out = {
-            "Symbol": symbol,
-            "Signal_Type": signal_type,
-            "Signal_date": sig_date,
-            "Signal_Price": sig_price,
-            "Signal_Rank": signal_rank,
-        }
+        "Symbol": group.at[0, "Symbol"],
+        "Signal_Type": group.at[0, "Signal_Type"],
+        "Signal_date": sig_date,
+        "Signal_Price": sig_price,
+        "Signal_Rank": group.at[0, "Signal_Rank"],
+    }
     
     for name, days in HORIZONS.items():
         target = sig_date + pd.Timedelta(days=days)
@@ -164,9 +157,10 @@ def calculate_returns(merged_df):
     returns_df = (
         merged_df.groupby(
             ["Symbol", "Signal_Type", "Signal_date", "Signal_Price", "Signal_Rank"],
-            as_index=False,
+            # as_index=False,
             sort=False,
-            dropna=False  # ✅ FIX: prevents KeyError on NaN keys
+            dropna=False,  # ✅ FIX: prevents KeyError on NaN keys
+            group_keys=False   # ✅ ADD THIS
         )
         .apply(compute_returns)
         .reset_index(drop=True)
