@@ -84,8 +84,8 @@ def compute_returns(group):
     print("DEBUG group index names:", group.index.names)
     group = group.reset_index(drop=True)  # important
 
-    if "Signal_Price" not in group.columns:
-        raise KeyError(f"Signal_Price missing in group. Columns: {group.columns}")
+    # if "Signal_Price" not in group.columns:
+    #     raise KeyError(f"Signal_Price missing in group. Columns: {group.columns}")
     
     group = group.sort_values("Date").reset_index(drop=True)
 
