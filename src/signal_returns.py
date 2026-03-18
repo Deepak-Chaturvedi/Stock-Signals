@@ -89,6 +89,10 @@ def compute_returns(group):
     
     group = group.sort_values("Date").reset_index(drop=True)
 
+    # 🔥 Extract from group.name (this is the fix)
+    print("DEBUG group.name:", group.name)
+    symbol, signal_type, sig_date, sig_price, signal_rank = group.name
+
     # ensure numeric columns before calculation
     group["Price"] = pd.to_numeric(group["Price"], errors="coerce")
     group["Signal_Price"] = pd.to_numeric(group["Signal_Price"], errors="coerce")
@@ -96,14 +100,22 @@ def compute_returns(group):
     sig_date = group.at[0, "Signal_date"]
     sig_price = group.at[0, "Signal_Price"]
 
-    out = {
-        "Symbol": group.at[0, "Symbol"],
-        "Signal_Type": group.at[0, "Signal_Type"],
-        "Signal_date": sig_date,
-        "Signal_Price": sig_price,
-        "Signal_Rank": group.at[0, "Signal_Rank"],
-    }
+    # out = {
+    #     "Symbol": group.at[0, "Symbol"],
+    #     "Signal_Type": group.at[0, "Signal_Type"],
+    #     "Signal_date": sig_date,
+    #     "Signal_Price": sig_price,
+    #     "Signal_Rank": group.at[0, "Signal_Rank"],
+    # }
 
+    out = {
+            "Symbol": symbol,
+            "Signal_Type": signal_type,
+            "Signal_date": sig_date,
+            "Signal_Price": sig_price,
+            "Signal_Rank": signal_rank,
+        }
+    
     for name, days in HORIZONS.items():
         target = sig_date + pd.Timedelta(days=days)
         sel = group[group["Date"] >= target]
