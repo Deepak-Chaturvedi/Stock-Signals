@@ -78,6 +78,15 @@ def merge_signals_with_prices(signals_df, stock_df):
 
 def compute_returns(group):
     """Compute returns for a single (Symbol, Signal_Type, Signal_date, Signal_Price, Signal_Rank) group."""
+    
+    #debug - 18 mar 2026
+    print("DEBUG group columns:", group.columns.tolist())
+    print("DEBUG group index names:", group.index.names)
+    group = group.reset_index(drop=True)  # important
+
+    if "Signal_Price" not in group.columns:
+        raise KeyError(f"Signal_Price missing in group. Columns: {group.columns}")
+    
     group = group.sort_values("Date").reset_index(drop=True)
 
     # ensure numeric columns before calculation
@@ -143,6 +152,7 @@ def calculate_returns(merged_df):
     returns_df = (
         merged_df.groupby(
             ["Symbol", "Signal_Type", "Signal_date", "Signal_Price", "Signal_Rank"],
+            as_index=False,
             sort=False,
             dropna=False  # ✅ FIX: prevents KeyError on NaN keys
         )
