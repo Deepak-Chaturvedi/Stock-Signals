@@ -129,6 +129,10 @@ def compute_returns(group):
 
 def calculate_returns(merged_df):
     """Apply return computation across all signal groups."""
+
+    #  DEBUG 18mar2026
+    print("DEBUG inside calculate_returns:", merged_df.columns.tolist())
+
     merged_df["Signal_date"] = pd.to_datetime(merged_df["Signal_date"])
     merged_df["Date"] = pd.to_datetime(merged_df["Date"])
     
@@ -248,6 +252,9 @@ def generate_signal_returns(db_path, stock_df):
         if merged_df.empty:
             print("⚠️ Merged DataFrame is empty — no price data matched signals.")
             return True, pd.DataFrame()
+
+        # DEBUG - 18Mar2026
+        print("DEBUG merged_df columns:", merged_df.columns.tolist())
 
         # Step 3: Compute returns
         returns_df = calculate_returns(merged_df)
