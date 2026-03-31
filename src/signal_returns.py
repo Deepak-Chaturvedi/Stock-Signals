@@ -80,8 +80,8 @@ def compute_returns(group):
     """Compute returns for a single (Symbol, Signal_Type, Signal_date, Signal_Price, Signal_Rank) group."""
     
     #debug - 18 mar 2026
-    print("DEBUG group columns:", group.columns.tolist())
-    print("DEBUG group index names:", group.index.names)
+    # print("DEBUG group columns:", group.columns.tolist())
+    # print("DEBUG group index names:", group.index.names)
 
     # group = group.reset_index(drop=True)  # important
 
@@ -145,7 +145,7 @@ def calculate_returns(merged_df):
     """Apply return computation across all signal groups."""
 
     #  DEBUG 18mar2026
-    print("DEBUG inside calculate_returns:", merged_df.columns.tolist())
+    # print("DEBUG inside calculate_returns:", merged_df.columns.tolist())
 
     merged_df["Signal_date"] = pd.to_datetime(merged_df["Signal_date"])
     merged_df["Date"] = pd.to_datetime(merged_df["Date"])
@@ -270,7 +270,7 @@ def generate_signal_returns(db_path, stock_df):
             return True, pd.DataFrame()
 
         # DEBUG - 18Mar2026
-        print("DEBUG merged_df columns:", merged_df.columns.tolist())
+        # print("DEBUG merged_df columns:", merged_df.columns.tolist())
 
         # Step 3: Compute returns
         returns_df = calculate_returns(merged_df)
