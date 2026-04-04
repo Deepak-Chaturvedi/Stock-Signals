@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # Database helper functions 
 # ---------------------------
 
-def get_company_symbols(db_path, table_name: str = "COMPANY_DETAILS") -> pd.DataFrame:
+def get_company_symbols(db_path, table_name: str = "STOCK_DETAILS") -> pd.DataFrame:
     """
     Fetch company details (e.g., ticker symbols) from SQLite.
     Expects a database path.
@@ -33,7 +33,7 @@ def get_company_symbols(db_path, table_name: str = "COMPANY_DETAILS") -> pd.Data
 
     try:
         conn = sqlite3.connect(db_path)
-        query = f"SELECT * FROM {table_name} WHERE EXCHANGE != 'BSE'"
+        query = f"SELECT * FROM {table_name} WHERE EXCHANGE != 'BSE' and UPDATE_DATE = (SELECT MAX(UPDATE_DATE) FROM {table_name})"
         df = pd.read_sql_query(query, conn)
         conn.close()
     except Exception as e:
@@ -114,3 +114,35 @@ def fetch_stock_data(tickers, raw_data_needed=365, interval="1d"):
 
     return df
 
+
+# Function to update STOCK_PRICES table in the database with latest stock prices for all stocks in STOCK_DETAILS table-
+def update_current_stock_prices(db_path, stock_df_latest):
+    """
+    Update the STOCK_PRICES table in the database with the latest stock prices.
+
+    Args:
+        db_path (str): Path to the SQLite database.
+        stock_df_latest (pd.DataFrame): DataFrame containing latest stock price data to be updated.
+    """
+    logger.info("🔄 Updating STOCK_PRICES table with latest stock prices...")
+
+    try:
+        conn = sqlite3.connect(db_path)
+        #Read the STOCK_DETAILS table from the database
+        stock_details = pd.read_sql("SELECT * FROM STOCK_DETAILS WHERE UPDATE_DATE = (SELECT MAX(UPDATE_DATE) FROM STOCK_DETAILS);", conn)
+        
+        #join the the latest stock prices. 
+        joined_df = pd.merge(stock_details, stock_df_latest, left_on='SYMBOL', right_on='Symbol', how='inner')
+        joined_df = joined_df[['ISIN_NUMBER', 'SYMBOL', 'EXCHANGE',  'Date', 'Open', 'High', 'Low', 'Close', 'Volume']]
+        joined_df['UPDATE_DATE'] = datetime.datetime.now().strftime('%Y-%m-%d')
+        #REMOVE ROWS WHERE CLOSE IS NULL
+        joined_df = joined_df[joined_df['Close'].notna()]
+        joined_df.to_sql("STOCK_PRICES", conn, if_exists="replace", index=False)
+        logger.info("✅ STOCK_PRICES table updated successfully.")
+    except Exception as e:
+        logger.error(f"Error updating STOCK_PRICES: {e}")
+        raise
+    finally:
+        conn.close()
+
+    logger.info(f"📊 STOCK_PRICES table updated for : {stock_df_latest['Date'].max().date()}")
