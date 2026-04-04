@@ -40,13 +40,14 @@ jobs:
       run: |
         mkdir -p output
         export PYTHONPATH="${PYTHONPATH}:${GITHUB_WORKSPACE}/src"
-        papermill notebooks/Stock_signals_execution_daily.ipynb output/output_notebook.ipynb
+        papermill notebooks/Stock_signals_execution_daily.ipynb output/stock_signals_output_notebook.ipynb
+# papermill notebooks/Stock_signals_execution_daily.ipynb output/output_notebook.ipynb
     
     - name: Upload output notebook
       uses: actions/upload-artifact@v4
       with:
         name: executed-notebook
-        path: output/output_notebook.ipynb
+        path: output/stock_signals_output_notebook.ipynb #output_notebook.ipynb earlier 
 
 #  # ✅ New Step: Commit and push updated SQLite file
 #     - name: Commit and push updated SQLite database
