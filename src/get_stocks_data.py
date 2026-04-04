@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # Database helper functions 
 # ---------------------------
 
-def get_company_symbols(db_path, table_name: str = "COMPANY_DETAILS") -> pd.DataFrame:
+def get_company_symbols(db_path, table_name: str = "STOCK_DETAILS") -> pd.DataFrame:
     """
     Fetch company details (e.g., ticker symbols) from SQLite.
     Expects a database path.

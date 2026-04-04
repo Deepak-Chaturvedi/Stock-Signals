@@ -4,7 +4,7 @@
 //   "Accumulation Signal" AS 'Signal Type',
 //   DATE(Date) AS 'Signal Date'
 //   FROM SIGNAL_ACCUMULATION_STEADY AS A
-//   LEFT JOIN COMPANY_DETAILS AS B
+//   LEFT JOIN STOCK_DETAILS AS B
 //     ON A.Symbol = B.Symbol
 //   WHERE B.EXCHANGE != 'BSE'
 //   ORDER BY "Signal Date" DESC, A.AD_Slope DESC, A.Avg_Volume_Spike DESC;
@@ -25,7 +25,7 @@ SELECT DISTINCT
   cast(round(ret_1y_perc  ,0)as INTEGER) || '%' AS '1 Year Return %',
   cast(round(ret_sinceSignal_perc ,0) AS INTEGER) || '%' AS 'Return Since Signal %'
   FROM SIGNAL_RETURNS AS A
-  LEFT JOIN COMPANY_DETAILS AS B
+  LEFT JOIN STOCK_DETAILS AS B
     ON A.Symbol = B.Symbol
   WHERE B.EXCHANGE != 'BSE'
   ORDER BY DATE(A.Signal_date) DESC, A.Signal_Rank ASC
