@@ -33,7 +33,7 @@ def get_company_symbols(db_path, table_name: str = "STOCK_DETAILS") -> pd.DataFr
 
     try:
         conn = sqlite3.connect(db_path)
-        query = f"SELECT * FROM {table_name} WHERE EXCHANGE != 'BSE' and UPDATE_DATE = (SELECT MAX(UPDATE_DATE) FROM STOCK_DETAILS)"
+        query = f"SELECT * FROM {table_name} WHERE EXCHANGE != 'BSE' and UPDATE_DATE = (SELECT MAX(UPDATE_DATE) FROM {table_name})"
         df = pd.read_sql_query(query, conn)
         conn.close()
     except Exception as e:
