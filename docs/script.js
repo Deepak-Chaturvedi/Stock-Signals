@@ -58,7 +58,7 @@ function updateLastUpdatedFromDB(db) {
   try {
     const result = db.exec(`
       SELECT MAX(current_date) AS max_date
-      FROM SIGNAL_RETURNS;
+      FROM STOCK_PRICES;
     `);
 
     if (!result.length || !result[0].values.length) return;
