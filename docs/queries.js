@@ -1,7 +1,7 @@
 // queries.js
 
 // SELECT DISTINCT A.Symbol, B.COMPANY_NAME AS Name,
-//   "Accumulation Signal" AS 'Signal Type',
+//   "Accumulation" AS 'Signal Type',
 //   DATE(Date) AS 'Signal Date'
 //   FROM SIGNAL_ACCUMULATION_STEADY AS A
 //   LEFT JOIN STOCK_DETAILS AS B
@@ -15,7 +15,7 @@ SELECT DISTINCT
   B.COMPANY_NAME AS Name,
   a.Signal_Type as 'Signal Type',
   DATE(A.Signal_date) AS 'Signal Date',
-  CAST(ROUND(a.Signal_Price,0) AS INTEGER) AS 'Signal Price',
+  CAST(ROUND(a.Updated_Signal_Price,0) AS INTEGER) AS 'Signal Price',
   CAST(ROUND(current_price, 0) AS INTEGER) AS 'Current Price',
   cast(round(ret_1w_perc  ,0)as INTEGER) || '%' AS '1 Week Return %',
   cast(round(ret_2w_perc  ,0)as INTEGER) || '%' AS '2 Week Return %',
