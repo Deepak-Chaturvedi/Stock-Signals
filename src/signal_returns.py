@@ -21,63 +21,70 @@ HORIZONS = {
 def load_signals_from_db(conn):
     """Load accumulation and EMA signals from the SQLite database."""
     signals_query = """
-        SELECT DISTINCT Symbol, DATE(Date) AS Signal_date, 
-        'Accumulation Signal' AS Signal_Type, 
-        Close AS Signal_Price ,
-        row_number() OVER (PARTITION BY DATE(Date) ORDER BY Date,Avg_Volume_Spike DESC, 
-        AD_Slope desc) as Signal_Rank
-        FROM SIGNAL_ACCUMULATION_STEADY 
-        WHERE DATE(Date) >='2024-01-01'
+        WITH GET_SIGNALS AS (
+            SELECT DISTINCT Symbol, DATE(Date) AS Signal_date, 
+            'Accumulation' AS Signal_Type, 
+            Close AS Signal_Price ,
+            row_number() OVER (PARTITION BY DATE(Date) ORDER BY Date,Avg_Volume_Spike DESC, 
+            AD_Slope desc) as Signal_Rank
+            FROM SIGNAL_ACCUMULATION_STEADY 
+            WHERE DATE(Date) >='2024-01-01'
 
-        UNION ALL
+            UNION ALL
 
-        SELECT DISTINCT Symbol, DATE(date_2) AS Signal_date, 
-            signal_2 AS Signal_Type, 
-            Price_2 AS Signal_Price ,
-            row_number() OVER (PARTITION BY DATE(date_2) ORDER BY 
-            upFrom52wlow DESC, Vol2 DESC, DATE(Date_1) DESC , Vol1 DESC)
-                    as Signal_Rank
+            SELECT DISTINCT Symbol, DATE(date_2) AS Signal_date, 
+                signal_2 AS Signal_Type, 
+                Price_2 AS Signal_Price ,
+                row_number() OVER (PARTITION BY DATE(date_2) ORDER BY 
+                upFrom52wlow DESC, Vol2 DESC, DATE(Date_1) DESC , Vol1 DESC)
+                        as Signal_Rank
 
-        FROM SIGNAL_EMA_CROSS
-        WHERE DATE(date_2) >='2024-01-01'
+            FROM SIGNAL_EMA_CROSS
+            WHERE DATE(date_2) >='2024-01-01'
+            -- order by   Signal_date DESC, Signal_Rank ASC
+        )
+        SELECT A.* , B.UPDATE_DATE, B.Close AS Price, b.Date as current_date
+        FROM GET_SIGNALS AS A 
+        LEFT JOIN STOCK_PRICES AS B
+        ON upper(A.Symbol) = upper(B.Symbol)
         order by   Signal_date DESC, Signal_Rank ASC
     """
     df = pd.read_sql_query(signals_query, conn)
-    print(f"✅ Total signals loaded: {df.shape[0]}")
+    print(f"✅ Total signals Present: {df.shape[0]}")
     return df
 
-def merge_signals_with_prices(signals_df, stock_df):
-    """Join signal data with stock prices to get post-signal price evolution."""
+# def merge_signals_with_prices(signals_df, stock_df):
+#     """Join signal data with stock prices to get post-signal price evolution."""
     
-    # ✅ FIX: Flatten MultiIndex columns if yfinance returned them
-    if isinstance(stock_df.columns, pd.MultiIndex):
-        stock_df = stock_df.copy()
-        stock_df.columns = [col[0] if col[1] == '' else col[0] for col in stock_df.columns]
+#     # ✅ FIX: Flatten MultiIndex columns if yfinance returned them
+#     if isinstance(stock_df.columns, pd.MultiIndex):
+#         stock_df = stock_df.copy()
+#         stock_df.columns = [col[0] if col[1] == '' else col[0] for col in stock_df.columns]
     
-    format_stock_df = stock_df[["Symbol", "Date", "Close"]].copy()
-    format_stock_df["Date"] = pd.to_datetime(format_stock_df["Date"])
+#     format_stock_df = stock_df[["Symbol", "Date", "Close"]].copy()
+#     format_stock_df["Date"] = pd.to_datetime(format_stock_df["Date"])
 
-    # ✅ FIX: Ensure Signal_Price is numeric before merge
-    signals_df["Signal_Price"] = pd.to_numeric(signals_df["Signal_Price"], errors="coerce")
+#     # ✅ FIX: Ensure Signal_Price is numeric before merge
+#     signals_df["Signal_Price"] = pd.to_numeric(signals_df["Signal_Price"], errors="coerce")
 
-    merged = pd.merge(signals_df, format_stock_df, on="Symbol", how="inner")
-    merged = merged[["Symbol", "Signal_date", "Signal_Type", "Signal_Price", "Signal_Rank", "Date", "Close"]]
+#     merged = pd.merge(signals_df, format_stock_df, on="Symbol", how="inner")
+#     merged = merged[["Symbol", "Signal_date", "Signal_Type", "Signal_Price", "Signal_Rank", "Date", "Close"]]
     
-    # ✅ FIX: Drop rows where Signal_Price is NaN before any calculations
-    merged = merged.dropna(subset=["Signal_Price"])
-    merged = merged[merged["Date"] >= pd.to_datetime(merged["Signal_date"])]
-    merged = merged.sort_values(
-        by=["Symbol", "Signal_Type", "Signal_date", "Date"],
-        ascending=[True, True, False, False],
-    )
-    merged.rename(columns={"Close": "Price"}, inplace=True)
+#     # ✅ FIX: Drop rows where Signal_Price is NaN before any calculations
+#     merged = merged.dropna(subset=["Signal_Price"])
+#     merged = merged[merged["Date"] >= pd.to_datetime(merged["Signal_date"])]
+#     merged = merged.sort_values(
+#         by=["Symbol", "Signal_Type", "Signal_date", "Date"],
+#         ascending=[True, True, False, False],
+#     )
+#     merged.rename(columns={"Close": "Price"}, inplace=True)
 
-    print(f"✅ Total signals after merging: {merged.shape[0]}")
-    return merged
+#     print(f"✅ Total signals after merging: {merged.shape[0]}")
+#     return merged
 
 
 def compute_returns(group):
-    """Compute returns for a single (Symbol, Signal_Type, Signal_date, Signal_Price, Signal_Rank) group."""
+    """Compute returns for a single (Symbol, Signal_Type, Signal_date, Updated_Signal_Price, Signal_Rank) group."""
     
     #debug - 18 mar 2026
     # print("DEBUG group columns:", group.columns.tolist())
@@ -96,7 +103,7 @@ def compute_returns(group):
 
     # ensure numeric columns before calculation
     group["Price"] = pd.to_numeric(group["Price"], errors="coerce")
-    group["Signal_Price"] = pd.to_numeric(group["Signal_Price"], errors="coerce")
+    group["Updated_Signal_Price"] = pd.to_numeric(group["Updated_Signal_Price"], errors="coerce")
 
     sig_date = group.at[0, "Signal_date"]
     sig_price = group.at[0, "Signal_Price"]
@@ -105,7 +112,7 @@ def compute_returns(group):
         "Symbol": group.at[0, "Symbol"],
         "Signal_Type": group.at[0, "Signal_Type"],
         "Signal_date": sig_date,
-        "Signal_Price": sig_price,
+        "Updated_Signal_Price": sig_price,
         "Signal_Rank": group.at[0, "Signal_Rank"],
     }
     
@@ -137,26 +144,34 @@ def compute_returns(group):
         out["ret_sinceSignal"] = pd.NA
 
     out["current_price"] = last_price
-    out["current_date"] = last_row["Date"]
+    out["current_date"] = last_row["current_date"]
 
     return pd.Series(out)
 
 def calculate_returns(merged_df):
-    """Apply return computation across all signal groups."""
+    """Apply return computation across all signal groups.
+
+    # """
 
     #  DEBUG 18mar2026
     # print("DEBUG inside calculate_returns:", merged_df.columns.tolist())
+  
 
     merged_df["Signal_date"] = pd.to_datetime(merged_df["Signal_date"])
-    merged_df["Date"] = pd.to_datetime(merged_df["Date"])
+    merged_df["Date"] = pd.to_datetime(merged_df["current_date"])
     
     # ✅ FIX: Ensure Signal_Price has no NaNs before groupby
-    merged_df["Signal_Price"] = pd.to_numeric(merged_df["Signal_Price"], errors="coerce")
-    merged_df = merged_df.dropna(subset=["Signal_Price"])
+    merged_df["Updated_Signal_Price"] = pd.to_numeric(merged_df["Updated_Signal_Price"], errors="coerce")
+    #Updated_Signal_Price is missing use Signal_Price instead for those records and then drop any remaining NaNs
+    merged_df["Updated_Signal_Price"] = merged_df.apply(
+        lambda row: row["Signal_Price"] if pd.isna(row["Updated_Signal_Price"]) else row["Updated_Signal_Price"],
+        axis=1
+    )
+    merged_df = merged_df.dropna(subset=["Updated_Signal_Price"])
 
     returns_df = (
         merged_df.groupby(
-            ["Symbol", "Signal_Type", "Signal_date", "Signal_Price", "Signal_Rank"],
+            ["Symbol", "Signal_Type", "Signal_date", "Updated_Signal_Price", "Signal_Rank"],
             # as_index=False,
             sort=False,
             dropna=False,  # ✅ FIX: prevents KeyError on NaN keys
@@ -164,6 +179,19 @@ def calculate_returns(merged_df):
         )
         .apply(compute_returns)
         .reset_index(drop=True)
+    )
+    # print(returns_df.columns)
+    # print(f"✅ Total records after return calculation: {returns_df.shape[0]}")
+
+    # Keep original Signal_Price for reference also in the final output, but use Updated_Signal_Price for all return calculations.
+    #write a merge function to merge back the original Signal_Price from merged_df to returns_df based on Symbol, Signal_Type, Signal_date, Signal_Rank 
+
+
+    returns_df = pd.merge(
+        returns_df,
+        merged_df[["Symbol", "Signal_Type", "Signal_date", "Signal_Rank", "Signal_Price"]].drop_duplicates(),
+        on=["Symbol", "Signal_Type", "Signal_date", "Signal_Rank"],
+        how="left"
     )
 
     # Convert numeric columns to ensure no text values
@@ -175,25 +203,34 @@ def calculate_returns(merged_df):
     for c in price_cols:
         returns_df[c] = pd.to_numeric(returns_df[c], errors="coerce")
 
-    returns_df["Signal_Price"] = pd.to_numeric(returns_df["Signal_Price"], errors="coerce")
+    returns_df["Updated_Signal_Price"] = pd.to_numeric(returns_df["Updated_Signal_Price"], errors="coerce")
 
     # Calculate percentage returns based on *_price and Signal_Price
     for horizon in HORIZONS.keys():
         returns_df[f"{horizon}_perc"] = returns_df.apply(
-            lambda row: round((row[f"{horizon}_price"] / row["Signal_Price"] - 1) * 100, 2)
-            if pd.notna(row[f"{horizon}_price"]) and pd.notna(row["Signal_Price"]) and row["Signal_Price"] != 0
+            lambda row: round((row[f"{horizon}_price"] / row["Updated_Signal_Price"] - 1) * 100, 2)
+            if pd.notna(row[f"{horizon}_price"]) and pd.notna(row["Updated_Signal_Price"]) and row["Updated_Signal_Price"] != 0
             else pd.NA,
             axis=1
         )
 
     # ret_sinceSignal_perc
     returns_df["ret_sinceSignal_perc"] = returns_df.apply(
-        lambda row: round((row["current_price"] / row["Signal_Price"] - 1) * 100, 2)
-        if pd.notna(row["current_price"]) and pd.notna(row["Signal_Price"]) and row["Signal_Price"] != 0
+        lambda row: round((row["current_price"] / row["Updated_Signal_Price"] - 1) * 100, 2)
+        if pd.notna(row["current_price"]) and pd.notna(row["Updated_Signal_Price"]) and row["Updated_Signal_Price"] != 0
         else pd.NA,
         axis=1
     )
 
+    #drop all other columns except Signal_Price after merge
+    col_order = ['Symbol', 'Signal_Type', 'Signal_date', 'Signal_Price','Updated_Signal_Price','Signal_Rank', 
+                 'ret_1w', 'ret_1w_price', 'ret_1w_date', 'ret_2w','ret_2w_price', 'ret_2w_date', 'ret_1m', 
+                 'ret_1m_price', 'ret_1m_date','ret_3m', 'ret_3m_price', 'ret_3m_date', 'ret_6m', 'ret_6m_price',
+                 'ret_6m_date', 'ret_1y', 'ret_1y_price', 'ret_1y_date','ret_sinceSignal', 'current_price', 'current_date' ]
+
+    returns_df = returns_df[col_order]
+    # print(returns_df.columns)
+    print(f"✅ Total records after return calculation: {returns_df.shape[0]}")
 
     return returns_df
 
@@ -234,8 +271,30 @@ def get_new_records_only(conn, new_df):
     return new_records
 
 
+# ============================================================
+# Update Signal_Price for corporate actions
+# ============================================================
 
 
+def updated_signal_price(signals_df, stock_df):
+    """Adjust Signal_Price for corporate actions- From stock_df get the price on signal date
+    and call it Updated_Signal_Price. This will be used to calculate returns instead of original Signal_Price 
+    """
+    format_stock_df = stock_df[["Symbol", "Date", "Close"]].copy()
+    format_stock_df["Date"] = pd.to_datetime(format_stock_df["Date"])
+
+    # Ensure Signal_date is datetime
+    signals_df["Signal_date"] = pd.to_datetime(signals_df["Signal_date"])
+
+    merged = pd.merge(
+        signals_df,
+        format_stock_df.rename(columns={"Date": "Signal_date", "Close": "Updated_Signal_Price"}),
+        on=["Symbol", "Signal_date"],
+        how="left"
+    )
+
+    print(f"✅ Total signals after merging for updated Signal Price: {merged.shape[0]}")
+    return merged
 
 
 # ============================================================
@@ -263,38 +322,60 @@ def generate_signal_returns(db_path, stock_df):
             print("⚠️ No signals found in DB — skipping returns generation.")
             return True, pd.DataFrame()
 
+        #14APR2026 - moved this funciton in load_signals_from_db. Date changed to current_date, Price changed to current_price
         # Step 2: Merge signals with stock prices
-        merged_df = merge_signals_with_prices(signals_df, stock_df)
-        if merged_df.empty:
-            print("⚠️ Merged DataFrame is empty — no price data matched signals.")
-            return True, pd.DataFrame()
+        # merged_df = merge_signals_with_prices(signals_df, stock_df)
+        # if merged_df.empty:
+        #     print("⚠️ Merged DataFrame is empty — no price data matched signals.")
+        #     return True, pd.DataFrame()
 
         # DEBUG - 18Mar2026
         # print("DEBUG merged_df columns:", merged_df.columns.tolist())
+
+        # New function - Updated_Signal_Price - adjust for corporate actions .
+        merged_df = updated_signal_price(signals_df, stock_df)
+        if merged_df.empty: 
+            print("⚠️ Merged DataFrame is empty after updated_signal_price — check for issues in price matching.")
+            return True, pd.DataFrame() 
 
         # Step 3: Compute returns
         returns_df = calculate_returns(merged_df)
         if returns_df.empty:
             print("⚠️ Returns DataFrame is empty after computation.")
+            print(returns_df.head())
             return True, pd.DataFrame()
 
+        # Instead of insert, replace the entire SIGNAL_RETURNS table every time. 
         # Step 4: Filter to only new records not already saved
-        new_records = get_new_records_only(conn, returns_df)
+        # new_records = get_new_records_only(conn, returns_df)
 
         # Step 5: Save to DB
-        if not new_records.empty:
+        # if not new_records.empty:
+        #     try:
+        #         new_records.to_sql('SIGNAL_RETURNS', conn, if_exists='append', index=False)
+        #         conn.commit()
+        #         print("💾 SIGNAL_RETURNS table updated successfully.")
+        #     except Exception as e:
+        #         conn.rollback()
+        #        print(f"❌ Error saving to SIGNAL_RETURNS: {e}")
+        #        raise
+        #else:
+        #    print("ℹ️ No new records to save — SIGNAL_RETURNS already up to date.")
+
+        #Save to DB - REPLACE ENTIRE TABLE
+        if not returns_df.empty:
             try:
-                new_records.to_sql('SIGNAL_RETURNS', conn, if_exists='append', index=False)
+                returns_df.to_sql('SIGNAL_RETURNS', conn, if_exists='replace', index=False)
                 conn.commit()
-                print("💾 SIGNAL_RETURNS table updated successfully.")
+                print("💾 SIGNAL_RETURNS table replaced successfully with new data.")
             except Exception as e:
                 conn.rollback()
                 print(f"❌ Error saving to SIGNAL_RETURNS: {e}")
                 raise
         else:
-            print("ℹ️ No new records to save — SIGNAL_RETURNS already up to date.")
+            print("ℹ️ No Signals — SIGNAL_RETURNS is not replaced.")
 
-        return True, new_records
+        return True, returns_df
 
     except Exception as e:
         print(f"❌ Error during signal returns generation: {e}")
