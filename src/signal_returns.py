@@ -106,7 +106,7 @@ def compute_returns(group):
     group["Updated_Signal_Price"] = pd.to_numeric(group["Updated_Signal_Price"], errors="coerce")
 
     sig_date = group.at[0, "Signal_date"]
-    sig_price = group.at[0, "Signal_Price"]
+    sig_price = group.at[0, "Updated_Signal_Price"]
 
     out = {
         "Symbol": group.at[0, "Symbol"],
@@ -194,6 +194,14 @@ def calculate_returns(merged_df):
         how="left"
     )
 
+    #drop all other columns except Signal_Price after merge
+    col_order = ['Symbol', 'Signal_Type', 'Signal_date', 'Signal_Price','Updated_Signal_Price','Signal_Rank', 
+                 'ret_1w', 'ret_1w_price', 'ret_1w_date', 'ret_2w','ret_2w_price', 'ret_2w_date', 'ret_1m', 
+                 'ret_1m_price', 'ret_1m_date','ret_3m', 'ret_3m_price', 'ret_3m_date', 'ret_6m', 'ret_6m_price',
+                 'ret_6m_date', 'ret_1y', 'ret_1y_price', 'ret_1y_date','ret_sinceSignal', 'current_price', 'current_date' ]
+
+    returns_df = returns_df[col_order]
+
     # Convert numeric columns to ensure no text values
     ret_cols = [c for c in returns_df.columns if c.startswith("ret_") and not c.endswith("_price") and not c.endswith("_date")]
     for c in ret_cols:
@@ -222,13 +230,6 @@ def calculate_returns(merged_df):
         axis=1
     )
 
-    #drop all other columns except Signal_Price after merge
-    col_order = ['Symbol', 'Signal_Type', 'Signal_date', 'Signal_Price','Updated_Signal_Price','Signal_Rank', 
-                 'ret_1w', 'ret_1w_price', 'ret_1w_date', 'ret_2w','ret_2w_price', 'ret_2w_date', 'ret_1m', 
-                 'ret_1m_price', 'ret_1m_date','ret_3m', 'ret_3m_price', 'ret_3m_date', 'ret_6m', 'ret_6m_price',
-                 'ret_6m_date', 'ret_1y', 'ret_1y_price', 'ret_1y_date','ret_sinceSignal', 'current_price', 'current_date' ]
-
-    returns_df = returns_df[col_order]
     # print(returns_df.columns)
     print(f"✅ Total records after return calculation: {returns_df.shape[0]}")
 
