@@ -182,7 +182,7 @@ def calculate_returns(merged_df):
         .reset_index(drop=True)
     )
     # print(returns_df.columns)
-    # print(f"✅ Total records after return calculation: {returns_df.shape[0]}")
+    print(f"✅ Total records after return calculation: {returns_df.shape[0]}")
 
     # Keep original Signal_Price for reference also in the final output, but use Updated_Signal_Price for all return calculations.
     #write a merge function to merge back the original Signal_Price from merged_df to returns_df based on Symbol, Signal_Type, Signal_date, Signal_Rank 
