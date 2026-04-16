@@ -207,7 +207,7 @@ def get_stock_metadata(symbols, sleep_time=1.5, max_retries=3, cache_path=None):
 # ============================================================
 # FINAL WRAPPER FUNCTION
 # ============================================================
-def generate_ema_signals(df, analysis_period=60, vol_thresh=1.5, output_period=30): # fno=None)
+def generate_ema_signals(df, analysis_period=30, vol_thresh=1.5, output_period=30): # fno=None)
     """
     Full EMA signal generation pipeline.
     Returns: long_stocks, short_stocks, ema_df_final
