@@ -1,0 +1,22 @@
+model:
+  type: logistic_regression
+  use_ml: true
+
+target:
+  type: return_threshold
+  return_column: ret_1m_perc
+  threshold: 10
+
+features:
+  use_columns:
+    - ret_1w_perc
+    - ret_2w_perc
+    - ret_1m_perc
+    - ret_3m_perc
+    - ret_6m_perc
+    - days_since_signal
+    - price_vs_signal
+    - signal_type_encoded
+
+prediction:
+  threshold: 0.6

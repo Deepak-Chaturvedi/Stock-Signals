@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented here.
 
+## [1.2.1] - 2026-04-15
+### Fixed
+- Adjust Stock Signal Prices for corporate actions - split/bonus etc. Reload full SIGNAL_RETURNS file everyday instead of inserting new rows. 
+-  Rename COMPANY_DETAILS table to STOCK_DETAILS 
+- Fixed pandas to use 2.2.2 version 
+
+### Added
+
+- Add a table STOCK_PRICES which contains stock prices for all signals for current date and updates daily
+- Use 'Updated Signal Price' to calculate return for 1week/2week and so on
+
+
 ## [1.1.1] - 2025-11-10
 ### Fixed
 - Refreshed stock database and notebook outputs to reflect analysis on a larger set of tickers and a shorter analysis period (15 days).
