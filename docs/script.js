@@ -163,9 +163,9 @@ function renderTable(data) {
             return new Date(y, m - 1, day);
           };
         return parse(a) - parse(b);
-        };
+      };
       }
-}
+
 
       return {
         title: c,
