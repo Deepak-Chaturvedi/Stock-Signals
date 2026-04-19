@@ -62,7 +62,7 @@ async function loadDatabase() {
   // const branch = window.location.hostname === "localhost"
   //   ? "development"
   //   : "main";
-  const branch = "hotfix-max-returns-by-period"  // for testing 
+  const branch = "hotfix-max-returns-by-period"  // for testing  
 
 
   const url = `https://raw.githubusercontent.com/Deepak-Chaturvedi/Stock-Signals/${branch}/data/stocks.db`;
