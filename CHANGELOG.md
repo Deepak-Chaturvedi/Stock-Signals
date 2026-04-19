@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented here.
 
+## v1.3.0 - 2026-04-19
+
+### Added
+- Max return metrics (1W, 2W, 1M, etc.)
+- Drawdown and From Peak calculations
+- Days in Profit %
+
+### Improved
+- Mobile UI optimization
+- Quick filters (Strong, Momentum, Low Risk)
+- Frozen Symbol column
+
+### Fixed
+- Column mismatch issues
+- DB sync issues across branches
+
 ## [1.1.1] - 2025-11-10
 ### Fixed
 - Refreshed stock database and notebook outputs to reflect analysis on a larger set of tickers and a shorter analysis period (15 days).
