@@ -39,19 +39,11 @@ document.addEventListener("DOMContentLoaded", () => {
 // ==========================================================
 function updateLastUpdatedFromDB(db) {
   try {
-    const result = db.exec(`
-      SELECT MAX(current_date) FROM STOCK_PRICES;
-    `);
-
+    const result = db.exec(`SELECT MAX(current_date) FROM STOCK_PRICES;`);
     const val = result?.[0]?.values?.[0]?.[0];
     if (!val) return;
 
-    const formatted = new Date(val).toLocaleDateString("en-IN", {
-      year: "numeric",
-      month: "short",
-      day: "numeric"
-    });
-
+    const formatted = new Date(val).toLocaleDateString("en-IN");
     document.getElementById("lastUpdated").textContent =
       `Data updated: ${formatted}`;
   } catch (err) {
@@ -82,33 +74,21 @@ async function loadDatabase() {
 
   const result = db.exec(window.QUERY_SIGNAL_ACCUMULATION);
 
-  if (!result.length) {
-    alert("No data found");
+  if (!result.length || !result[0].values.length) {
+    console.error("No data returned from query");
     return;
   }
 
-  const columns = [
-    "Symbol",
-    "Company Name",
-    "Signal Type",
-    "Signal Date",
-    "Signal Price",
-    "Current Price",
-    "Current Return %",
-    "1W Best %",
-    "2W Best %",
-    "1M Best %",
-    "Max Drawdown %",
-    "Days to Peak",
-    "From Peak %",
-    "Days in Profit %"
-  ];
+  const cols = result[0].columns;
 
   const rows = result[0].values.map(r => {
     let obj = {};
-    columns.forEach((c, i) => obj[c] = r[i]);
+    cols.forEach((c, i) => obj[c] = r[i]);
     return obj;
   });
+
+  console.log("Columns:", cols);
+  console.log("Row count:", rows.length);
 
   createFilters(rows);
   renderTable(rows);
@@ -149,21 +129,25 @@ let table;
 // 📊 Table
 // ==========================================================
 function renderTable(data) {
+
+  if (!data.length) {
+    console.error("No data to render");
+    return;
+  }
+
   table = new Tabulator("#table", {
     data: data,
-    layout: "fitDataStretch",   // better for responsiveness
-    responsiveLayout: "collapse",  // optional: hide columns nicely
+    layout: "fitDataStretch",
     height: "70vh",
 
     pagination: "local",
-    paginationSize: parseInt(localStorage.getItem("pageSize")) || 25,
-    paginationSizeSelector: [15, 25, 50, 100],
+    paginationSize: 25,
 
     columns: Object.keys(data[0]).map(c => {
 
       let sorter = "string";
 
-      if (c.includes("%") || c.includes("Price") || c.includes("Drawdown")) {
+      if (c.includes("%") || c.includes("Price")) {
         sorter = (a, b) => {
           const num = v => parseFloat((v || "0").toString().replace(/[^\d.-]/g, "")) || 0;
           return num(a) - num(b);
@@ -205,14 +189,10 @@ function renderTable(data) {
   });
 
   table.setSort([{ column: "Signal Date", dir: "desc" }]);
-
-  table.on("pageSizeChanged", size => {
-    localStorage.setItem("pageSize", size);
-  });
 }
 
 // ==========================================================
-// 🎯 Apply Filters
+// 🎯 Filters
 // ==========================================================
 function applyFilters() {
   const sym = document.getElementById("symbolFilter").value;
@@ -225,47 +205,31 @@ function applyFilters() {
 }
 
 // ==========================================================
-// 🔥 Quick Filters
+// 🔥 Quick Filters (FIXED)
 // ==========================================================
 function parsePercent(val) {
   return parseFloat((val || "0").toString().replace(/[^\d.-]/g, "")) || 0;
 }
 
-function numericFilter(field, minVal) {
-  return function(data) {
-    const val = parseFloat((data[field] || "0").replace(/[^\d.-]/g, ""));
-    return val > minVal;
-  };
-}
-
 function applyQuickFilter(type) {
   table.clearFilter();
 
-  if (type === "strong") {
-    table.setFilter([
-      { field: "1M Best %", type: ">", value: 10 },
-      { field: "Max Drawdown %", type: ">", value: -5 }
-    ]);
-  }
+  table.setFilter(data => {
+    const best = parsePercent(data["1M Best %"]);
+    const dd = parsePercent(data["Max Drawdown %"]);
+    const current = parsePercent(data["Current Return %"]);
 
-  else if (type === "momentum") {
-    table.setFilter(numericFilter("Current Return %", 5));
-  }
-
-  else if (type === "lowrisk") {
-    table.setFilter("Max Drawdown %", ">", -5);
-  }
-
-  else if (type === "reset") {
-    table.clearFilter();
-  }
+    if (type === "strong") return best > 10 && dd > -5;
+    if (type === "momentum") return current > 5;
+    if (type === "lowrisk") return dd > -5;
+    return true;
+  });
 }
 
-// Button handler
+// button binding
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("#quickFilters button").forEach(btn => {
     btn.addEventListener("click", () => {
-
       document.querySelectorAll("#quickFilters button")
         .forEach(b => b.classList.remove("active"));
 
