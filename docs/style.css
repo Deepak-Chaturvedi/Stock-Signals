@@ -1,31 +1,136 @@
+/* ===== Base Layout ===== */
 body {
-  font-family: system-ui, sans-serif;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   margin: 20px;
   background: #fafafa;
+  color: #222;
 }
 
 h1 {
   text-align: center;
+  margin-bottom: 5px;
 }
 
+/* Subtitle */
+.subtitle {
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 15px;
+}
+
+/* ===== Controls ===== */
 #controls {
   display: flex;
   justify-content: center;
   gap: 10px;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
 }
 
-#table {
+#controls button {
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+#controls button:hover {
+  background: #f0f0f0;
+}
+
+/* ===== Filters ===== */
+#filters {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+#filters select,
+#filters input,
+#filters button {
+  padding: 6px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+/* ===== Quick Filters ===== */
+.quick-filters {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 10px 0 20px;
+  flex-wrap: wrap;
+}
+
+.quick-filters button {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.quick-filters button:hover {
+  background: #f0f0f0;
+}
+
+.quick-filters button.active {
+  background: #222;
+  color: #fff;
+  border-color: #222;
+}
+
+/* ===== Table Container ===== */
+#tableContainer {
+  max-width: 95%;
   margin: 0 auto;
-  max-width: 90%;
 }
 
-canvas {
-  display: block;
-  margin: 40px auto;
-  max-width: 90%;
+/* ===== Tabulator Overrides ===== */
+.tabulator {
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  font-size: 13px;
 }
 
+/* Header */
+.tabulator-header {
+  background-color: #f4f4f4;
+  font-weight: 600;
+}
+
+/* Row hover */
+.tabulator-row:hover {
+  background-color: #f1f1f1 !important;
+}
+
+/* ===== Value Coloring (if used via classes later) ===== */
+.positive {
+  color: #1a7f37;
+  font-weight: 600;
+}
+
+.negative {
+  color: #d93025;
+  font-weight: 600;
+}
+
+.neutral {
+  color: #555;
+}
+
+/* ===== Highlight strong rows ===== */
+.tabulator-row.highlight {
+  background-color: #e8f5e9 !important;
+}
+
+/* ===== Last Updated ===== */
 .last-updated {
   text-align: right;
   font-size: 13px;
@@ -34,3 +139,16 @@ canvas {
   margin-right: 20px;
 }
 
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  #controls,
+  #filters,
+  .quick-filters {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  #tableContainer {
+    max-width: 100%;
+  }
+}
