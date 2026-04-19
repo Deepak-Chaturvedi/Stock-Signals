@@ -20,34 +20,27 @@
 
 <body>
 
-  <!-- Title -->
-  <h1>📈 Stock Signals Dashboard</h1>
-
-  <!-- Subtitle -->
-  <p class="subtitle">
-    Track signal performance, risk, and momentum across stocks
-  </p>
+  <!-- 🔝 Compact Header -->
+  <div class="top-bar">
+    <h1>📈 Stock Signals</h1>
+    <button id="downloadCSV" class="export-btn">Export CSV</button>
+  </div>
 
   <!-- Last Updated -->
   <p id="lastUpdated" class="last-updated"></p>
 
-  <!-- Controls -->
-  <div id="controls">
-    <button id="downloadCSV">Export CSV</button>
-  </div>
-
-  <!-- Dynamic Filters -->
+  <!-- Filters (Dynamic) -->
   <div id="filters"></div>
 
   <!-- 🔥 Quick Filters -->
   <div id="quickFilters" class="quick-filters">
-    <button data-filter="strong">Strong Signals</button>
+    <button data-filter="strong">Strong</button>
     <button data-filter="momentum">Momentum</button>
     <button data-filter="lowrisk">Low Risk</button>
     <button data-filter="reset" class="active">Reset</button>
   </div>
 
-  <!-- Table -->
+  <!-- 📊 Table -->
   <div id="tableContainer">
     <div id="table"></div>
   </div>

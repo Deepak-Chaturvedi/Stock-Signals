@@ -151,7 +151,8 @@ let table;
 function renderTable(data) {
   table = new Tabulator("#table", {
     data: data,
-    layout: "fitDataFill",
+    layout: "fitDataStretch",   // better for responsiveness
+    responsiveLayout: "collapse",  // optional: hide columns nicely
     height: "70vh",
 
     pagination: "local",
@@ -230,29 +231,32 @@ function parsePercent(val) {
   return parseFloat((val || "0").toString().replace(/[^\d.-]/g, "")) || 0;
 }
 
+function numericFilter(field, minVal) {
+  return function(data) {
+    const val = parseFloat((data[field] || "0").replace(/[^\d.-]/g, ""));
+    return val > minVal;
+  };
+}
+
 function applyQuickFilter(type) {
   table.clearFilter();
 
   if (type === "strong") {
-    table.addFilter(d =>
-      parsePercent(d["1M Best %"]) > 10 &&
-      parsePercent(d["Max Drawdown %"]) > -5
-    );
+    table.setFilter([
+      { field: "1M Best %", type: ">", value: 10 },
+      { field: "Max Drawdown %", type: ">", value: -5 }
+    ]);
   }
 
-  if (type === "momentum") {
-    table.addFilter(d =>
-      parsePercent(d["Current Return %"]) > 5
-    );
+  else if (type === "momentum") {
+    table.setFilter(numericFilter("Current Return %", 5));
   }
 
-  if (type === "lowrisk") {
-    table.addFilter(d =>
-      parsePercent(d["Max Drawdown %"]) > -5
-    );
+  else if (type === "lowrisk") {
+    table.setFilter("Max Drawdown %", ">", -5);
   }
 
-  if (type === "reset") {
+  else if (type === "reset") {
     table.clearFilter();
   }
 }

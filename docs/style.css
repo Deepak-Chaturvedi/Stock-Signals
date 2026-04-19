@@ -149,6 +149,31 @@ h1 {
   }
 
   #tableContainer {
-    max-width: 100%;
+  width: 100%;
+  overflow-x: auto;    
   }
+
+  #table {
+  min-width: 900px;   /* ensures scroll instead of collapse */
+  }
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.top-bar h1 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.export-btn {
+  padding: 5px 10px;
+  font-size: 12px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
 }
