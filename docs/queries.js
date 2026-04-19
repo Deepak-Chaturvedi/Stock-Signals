@@ -42,7 +42,7 @@ window.QUERY_SIGNAL_ACCUMULATION = `
   WHERE B.EXCHANGE != 'BSE'
   AND B.UPDATE_DATE = (SELECT MAX(UPDATE_DATE) FROM STOCK_DETAILS)
 
-  ORDER BY DATE(A.Signal_date) DESC, A.Signal_Rank ASC;
+  ORDER BY DATE(A.Signal_date) DESC, A.Signal_Rank ASC
   ;
 `;
 // script.js
