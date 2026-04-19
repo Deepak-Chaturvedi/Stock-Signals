@@ -156,7 +156,16 @@ function renderTable(data) {
         };
       }
 
-      if (c === "Signal Date") sorter = "date";
+      if (c === "Signal Date") {
+        sorter = (a, b) => {
+          const parse = d => {
+            const [y, m, day] = d.split("-");
+            return new Date(y, m - 1, day);
+          };
+        return parse(a) - parse(b);
+        };
+      }
+}
 
       return {
         title: c,
