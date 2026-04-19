@@ -161,7 +161,7 @@ function renderTable(data) {
       return {
         title: c,
         field: c,
-       // headerFilter: "input",
+        headerFilter: "input",
         sorter: sorter,
 
         // Freeze only Symbol column
