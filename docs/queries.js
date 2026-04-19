@@ -26,14 +26,17 @@ window.QUERY_SIGNAL_ACCUMULATION = `
     CAST(ROUND(A.ret_1w_max,0) AS INTEGER) || '%' AS '1W Best %',
     CAST(ROUND(A.ret_2w_max,0) AS INTEGER) || '%' AS '2W Best %',
     CAST(ROUND(A.ret_1m_max,0) AS INTEGER) || '%' AS '1M Best %',
+    CAST(ROUND(A.ret_3m_max,0) AS INTEGER) || '%' AS '3M Best %',
+
+    -- Add this (overall max)
+    CAST(ROUND(A.ret_sinceSignal_max,0) AS INTEGER) || '%' AS 'Max Return %',
 
     -- 🔻 Risk
     CAST(ROUND(A.ret_sinceSignal_dd,0) AS INTEGER) || '%' AS 'Max Drawdown %',
 
     -- ⚡ Behavior
-    A.ret_1m_time_to_peak AS 'Days to Peak',
-    CAST(ROUND(A.ret_1m_peak_to_end,0) AS INTEGER) || '%' AS 'From Peak %',
-    ROUND(A.ret_1m_pct_days_profit * 100,0) || '%' AS 'Days in Profit %'
+    A.ret_1m_time_to_peak AS '1M Days to Peak',
+    CAST(ROUND(A.ret_1m_peak_to_end,0) AS INTEGER) || '%' AS '1M From Peak %'
 
   FROM SIGNAL_RETURNS AS A
   LEFT JOIN STOCK_DETAILS AS B
@@ -47,3 +50,4 @@ window.QUERY_SIGNAL_ACCUMULATION = `
 `;
 // script.js
 //ORDER BY  7 DESC,8 DESC,9 DESC,10 DESC,11 DESC,12 DESC,13 DESC
+// ROUND(A.ret_1m_pct_days_profit * 100,0) || '%' AS 'Days in Profit %'

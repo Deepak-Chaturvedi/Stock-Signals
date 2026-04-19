@@ -229,13 +229,22 @@ function applyQuickFilter(type) {
   table.clearFilter();
 
   table.setFilter(data => {
-    const best = parsePercent(data["1M Best %"]);
+    const best1M = parsePercent(data["1M Best %"]);
+    const best3M = parsePercent(data["3M Best %"]);
+    const maxRet = parsePercent(data["Max Return %"]);
     const dd = parsePercent(data["Max Drawdown %"]);
     const current = parsePercent(data["Current Return %"]);
 
-    if (type === "strong") return best > 10 && dd > -5;
+    if (type === "strong") {
+      return (
+        (best1M > 10 || best3M > 15 || maxRet > 20) &&
+        dd > -5
+      );
+    }
+
     if (type === "momentum") return current > 5;
     if (type === "lowrisk") return dd > -5;
+
     return true;
   });
 }
