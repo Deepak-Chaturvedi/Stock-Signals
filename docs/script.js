@@ -59,10 +59,10 @@ async function loadDatabase() {
     locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${f}`
   });
 
-  // const branch = window.location.hostname === "localhost"
-  //   ? "development"
-  //   : "main";
-  const branch = "hotfix-max-returns-by-period"  // for testing  
+  const branch = window.location.hostname === "localhost"
+     ? "development"
+     : "main";
+  //const branch = "hotfix-max-returns-by-period"  // for testing  
 
 
   const url = `https://raw.githubusercontent.com/Deepak-Chaturvedi/Stock-Signals/${branch}/data/stocks.db`;
