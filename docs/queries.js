@@ -35,8 +35,10 @@ window.QUERY_SIGNAL_ACCUMULATION = `
     CAST(ROUND(A.ret_sinceSignal_dd,0) AS INTEGER) || '%' AS 'Max Drawdown %',
 
     -- ⚡ Behavior
-    A.ret_1m_time_to_peak AS '1M Days to Peak',
-    CAST(ROUND(A.ret_1m_peak_to_end,0) AS INTEGER) || '%' AS '1M From Peak %'
+    coalesce(A.ret_1y_time_to_peak, A.ret_3m_time_to_peak, A.ret_1m_time_to_peak,
+    A.ret_2w_time_to_peak, A.ret_1w_time_to_peak) AS 'Days to Peak',
+    CAST(ROUND(coalesce(A.ret_1y_peak_to_end, A.ret_3m_peak_to_end, A.ret_1m_peak_to_end,
+    A.ret_2w_peak_to_end, A.ret_1w_peak_to_end),0) AS INTEGER) || '%' AS 'Change From Peak %'
 
   FROM SIGNAL_RETURNS AS A
   LEFT JOIN STOCK_DETAILS AS B

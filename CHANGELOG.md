@@ -2,7 +2,13 @@
 
 All notable changes to this project will be documented here.
 
-## v1.3.0 - 2026-04-19
+## [1.3.1] - 2026-05-02
+
+### Changed
+- Use all timeframes to calculate days to peak instead of just considering 1m timeframe.
+- bump version to 1.3.1 from 1.3.0 
+
+## [1.3.0] - 2026-04-19
 
 ### Added
 - Max return metrics (1W, 2W, 1M, etc.)
