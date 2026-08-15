@@ -1,36 +1,164 @@
+/* ===== Base Layout ===== */
 body {
-  font-family: system-ui, sans-serif;
-  margin: 20px;
+  margin: 0;
+  padding: 10px;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   background: #fafafa;
+  color: #222;
 }
 
-h1 {
-  text-align: center;
-}
-
-#controls {
+/* ===== Header ===== */
+.top-bar {
   display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 20px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
 }
 
-#table {
-  margin: 0 auto;
-  max-width: 90%;
+.top-bar h1 {
+  margin: 0;
+  font-size: 16px;
 }
 
-canvas {
-  display: block;
-  margin: 40px auto;
-  max-width: 90%;
+.export-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
+  border-radius: 4px;
 }
 
+.export-btn:hover {
+  background: #f0f0f0;
+}
+
+/* ===== Last Updated ===== */
 .last-updated {
   text-align: right;
-  font-size: 13px;
+  font-size: 12px;
   color: #555;
-  margin-top: -10px;
-  margin-right: 20px;
+  margin-bottom: 5px;
 }
 
+/* ===== Filters ===== */
+#filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+#filters select,
+#filters input,
+#filters button {
+  font-size: 12px;
+  padding: 5px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+/* ===== Quick Filters ===== */
+.quick-filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.quick-filters button {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-filters button:hover {
+  background: #f0f0f0;
+}
+
+.quick-filters button.active {
+  background: #222;
+  color: white;
+  border-color: #222;
+}
+
+/* ===== Table Container ===== */
+#tableContainer {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;   /* 🔥 mobile horizontal scroll */
+}
+
+/* Ensure table fills width */
+#table {
+  width: 100%;
+}
+
+/* ===== Tabulator Overrides ===== */
+.tabulator {
+  width: 100% !important;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  font-size: 13px;
+}
+
+/* Header */
+.tabulator-header {
+  background-color: #f4f4f4;
+  font-weight: 600;
+}
+
+/* Row hover */
+.tabulator-row:hover {
+  background-color: #f1f1f1 !important;
+}
+
+/* ===== Value Coloring ===== */
+.positive {
+  color: #1a7f37;
+  font-weight: 600;
+}
+
+.negative {
+  color: #d93025;
+  font-weight: 600;
+}
+
+.neutral {
+  color: #555;
+}
+
+/* ===== Highlight strong rows ===== */
+.tabulator-row.highlight {
+  background-color: #e8f5e9 !important;
+}
+
+/* ===== Frozen Column Styling ===== */
+.tabulator-frozen {
+  background: #f9f9f9 !important;
+  font-weight: 600;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .top-bar h1 {
+    font-size: 14px;
+  }
+
+  .export-btn {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+
+  #filters,
+  .quick-filters {
+    justify-content: center;
+  }
+}

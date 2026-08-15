@@ -1,301 +1,277 @@
 // script.js
-// Deepak-Chaturvedi/Stock-Signals
 
 // ==========================================================
-// ⚠️ SEBI COMPLIANCE DISCLAIMER BANNER
+// ⚠️ SEBI DISCLAIMER
 // ==========================================================
-
-
 document.addEventListener("DOMContentLoaded", () => {
-  // Create the banner container
-  const disclaimerBanner = document.createElement("div");
+  const banner = document.createElement("div");
 
-  // Add disclaimer content
-  disclaimerBanner.innerHTML = `
+  banner.innerHTML = `
     <span style="flex: 1;">
-      ⚠️ <strong>Disclaimer:</strong> For educational use only and does not constitute investment advice. 
-      Consult a SEBI registered investment adviser before making any financial decisions.
+      ⚠️ <strong>Disclaimer:</strong> For educational use only. 
+      Consult a SEBI registered adviser before investing.
     </span>
-    <button id="closeDisclaimer" 
-      style="background:none; border:none; color:#721c24; font-weight:bold; cursor:pointer; margin-left:10px;">
-      ✖
-    </button>
+    <button id="closeDisclaimer">✖</button>
   `;
 
- // Apply styling
-  Object.assign(disclaimerBanner.style, {
-    backgroundColor: "#f8d7da",  // Light red background
-    color: "#721c24",            // Dark red text
-    border: "1px solid #f5c6cb",
-    padding: "10px 15px",
+  Object.assign(banner.style, {
+    backgroundColor: "#f8d7da",
+    color: "#721c24",
+    padding: "10px",
     fontSize: "13px",
-    textAlign: "center",
-    fontWeight: "500",
-    lineHeight: "1.5",
     position: "sticky",
     top: "0",
     zIndex: "9999",
-    width: "100%",
     display: "flex",
     justifyContent: "center",
-    alignItems: "center",
-    flexWrap: "wrap",            // ✅ Mobile responsive
+    alignItems: "center"
   });
 
-  // Add banner to top of page
-  document.body.prepend(disclaimerBanner);
+  document.body.prepend(banner);
 
-  // Close button functionality
-  const closeBtn = document.getElementById("closeDisclaimer");
-  closeBtn.addEventListener("click", () => {
-    disclaimerBanner.style.display = "none";
-  });
+  document.getElementById("closeDisclaimer").onclick = () => {
+    banner.style.display = "none";
+  };
 });
 
 // ==========================================================
-// Get last updated date based on the latest "current_date" in the data
+// 📅 Last Updated
+// ==========================================================
 function updateLastUpdatedFromDB(db) {
   try {
-    const result = db.exec(`
-      SELECT MAX(current_date) AS max_date
-      FROM STOCK_PRICES;
-    `);
+    const result = db.exec(`SELECT MAX(current_date) FROM STOCK_PRICES;`);
+    const val = result?.[0]?.values?.[0]?.[0];
+    if (!val) return;
 
-    if (!result.length || !result[0].values.length) return;
-
-    const maxDateRaw = result[0].values[0][0];
-    if (!maxDateRaw) return;
-
-    const formatted = new Date(maxDateRaw).toLocaleDateString("en-IN", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-
-    const el = document.getElementById("lastUpdated");
-    if (el) {
-      el.textContent = `Data updated : ${formatted}`;
-    }
+    const formatted = new Date(val).toLocaleDateString("en-IN");
+    document.getElementById("lastUpdated").textContent =
+      `Data updated: ${formatted}`;
   } catch (err) {
-    console.error("Failed to read max(current_date):", err);
+    console.error(err);
   }
 }
 
-
-// --- STEP 1: Load SQLite DB from GitHub and initialize SQL.js ---
+// ==========================================================
+// 📥 Load DB
+// ==========================================================
 async function loadDatabase() {
-  const sqlPromise = initSqlJs({
-    locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+  const SQL = await initSqlJs({
+    locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${f}`
   });
 
-  // Detect environment (localhost → development)
-  const isDev = window.location.hostname === "localhost";
-  const branch = isDev ? "development" : "main";
+  const branch = window.location.hostname === "localhost"
+     ? "development"
+     : "main";
+  //const branch = "hotfix-max-returns-by-period"  // for testing  
 
-  // ✅ Dynamic DB path (auto-switches based on environment)
-  const dbUrl = `https://raw.githubusercontent.com/Deepak-Chaturvedi/Stock-Signals/${branch}/data/stocks.db`;
-  console.log("Using DB URL:", dbUrl);
 
-  // Load database
-  const dataPromise = fetch(dbUrl).then(res => {
-    if (!res.ok) throw new Error("Database not found or inaccessible");
-    return res.arrayBuffer();
-  });
+  const url = `https://raw.githubusercontent.com/Deepak-Chaturvedi/Stock-Signals/${branch}/data/stocks.db`;
 
-  const [SQL, buf] = await Promise.all([sqlPromise, dataPromise]);
+  const res = await fetch(url);
+  const buf = await res.arrayBuffer();
+
   const db = new SQL.Database(new Uint8Array(buf));
 
-
-    // ✅ Update "Data updated as on"
   updateLastUpdatedFromDB(db);
 
-  // --- STEP 2: Query your specific table ---
-  const tableName = "SIGNAL_RETURNS"; // ✅ matches the new query source table
+  const result = db.exec(window.QUERY_SIGNAL_ACCUMULATION);
 
-  // Check if table exists
-  const colQuery = db.exec(`PRAGMA table_info(${tableName});`);
-  if (colQuery.length === 0) {
-    alert(`Table ${tableName} not found in database.`);
+  if (!result.length || !result[0].values.length) {
+    console.error("No data returned from query");
     return;
   }
 
-  // ✅ Columns now match your query fields
-  const columns = [
-    "Symbol", 
-    "Name",
-    "Signal Type",
-    "Signal Date",
-    "Signal Price",
-    "Current Price",
-    "1 Week Return %",
-    "2 Week Return %",
-    "1 Month Return %",
-    "3 Month Return %",
-    "6 Month Return %",
-    "1 Year Return %",
-    "Return Since Signal %"
-  ];
+  const cols = result[0].columns;
 
-  // ✅ Execute your global query
-  const dataQuery = db.exec(window.QUERY_SIGNAL_ACCUMULATION);
-
-  if (dataQuery.length === 0) {
-    alert(`No data found in table ${tableName}`);
-    return;
-  }
-
-  if (dataQuery.length > 0) {
-  console.log("Row count:", dataQuery[0].values.length);
-
-  // Check if the last column is percentage values
-  const allReturns = dataQuery[0].values.map(r => parseFloat((r.at(-1) || "0").toString().replace("%", "")));
-  const maxReturn = Math.max(...allReturns);
-  console.log("Max Return % from DB:", maxReturn);
-  }
-
-
-  // Map rows to objects for Tabulator
-  const rows = dataQuery[0].values.map(row => {
-    const obj = {};
-    columns.forEach((c, i) => obj[c] = row[i]);
+  const rows = result[0].values.map(r => {
+    let obj = {};
+    cols.forEach((c, i) => obj[c] = r[i]);
     return obj;
   });
 
-  // --- STEP 3: Build dropdown filters dynamically ---
-  createFilters(rows, columns);
+  console.log("Columns:", cols);
+  console.log("Row count:", rows.length);
 
-  // --- STEP 4: Initialize Tabulator Table ---
-  renderTable(rows, columns);
+  createFilters(rows);
+  renderTable(rows);
 }
 
-// --- Filter creation ---
-function createFilters(data, columns) {
-  const filterDiv = document.getElementById("filters");
-  filterDiv.innerHTML = ""; // clear old filters
+// ==========================================================
+// 🔍 Filters
+// ==========================================================
+function createFilters(data) {
+  const div = document.getElementById("filters");
+  div.innerHTML = "";
 
-  // ✅ Case-insensitive check for column names
-  const symbolCol = columns.find(c => c.toLowerCase().includes("symbol"));
-  if (symbolCol) {
-    const symbols = [...new Set(data.map(d => d[symbolCol]))].filter(Boolean);
-    const symbolSelect = document.createElement("select");
-    symbolSelect.id = "symbolFilter";
-    symbolSelect.innerHTML =
-      `<option value="">All Symbols</option>` +
-      symbols.map(s => `<option value="${s}">${s}</option>`).join("");
-    filterDiv.appendChild(symbolSelect);
-  }
+  const symbols = [...new Set(data.map(d => d["Symbol"]))];
 
-  // ✅ Date filter for any date-like column
-  const dateCol = columns.find(c => c.toLowerCase().includes("date"));
-  if (dateCol) {
-    const input = document.createElement("input");
-    input.type = "date";
-    input.id = "dateFilter";
-    filterDiv.appendChild(input);
-  }
+  const select = document.createElement("select");
+  select.id = "symbolFilter";
+
+  select.innerHTML =
+    `<option value="">All Symbols</option>` +
+    symbols.map(s => `<option value="${s}">${s}</option>`).join("");
+
+  div.appendChild(select);
+
+  const date = document.createElement("input");
+  date.type = "date";
+  date.id = "dateFilter";
+  div.appendChild(date);
 
   const btn = document.createElement("button");
-  btn.textContent = "Apply Filters";
+  btn.textContent = "Apply";
   btn.onclick = applyFilters;
-  filterDiv.appendChild(btn);
+  div.appendChild(btn);
 }
 
-let table; // global reference
+let table;
 
-// --- Save & Get page size from localStorage ---
-function getSavedPageSize() {
-  return parseInt(localStorage.getItem("pageSize")) || 25;
-}
+// ==========================================================
+// 📊 Table
+// ==========================================================
+function renderTable(data) {
 
-// --- Render table with Tabulator (fixed sorting) ---
-function renderTable(data, columns) {
+  if (!data.length) {
+    console.error("No data to render");
+    return;
+  }
+
   table = new Tabulator("#table", {
     data: data,
-    // 🔹 Layout & UX
-    layout: "fitDataFill",
-    height: "70vh",              // REQUIRED for sticky headers
-    headerVisible: true,
+    layout: "fitDataStretch",
+    height: "70vh",
 
-    // 🔹 Pagination
     pagination: "local",
-    paginationSize: getSavedPageSize(),
-    paginationSizeSelector: [15, 25, 50, 100, true],
-    pagination: "local",
+    paginationSize: 25,
 
-    columns: columns.map(c => {
-      let sorterType = "string";
-      let sorterFunc = undefined;
+    columns: Object.keys(data[0]).map(c => {
 
-      // Detect numeric or percentage columns
-      if (c.toLowerCase().includes("price") || c.toLowerCase().includes("return")) {
-        sorterType = "number";
-        // Custom numeric sorter to handle "%" or stringified numbers
-        sorterFunc = (a, b, aRow, bRow, column, dir, sorterParams) => {
-          const toNum = val => {
-            if (typeof val === "string") {
-              // return parseFloat(val.replace("%", "").replace(",", "")) || 0;
-              return parseFloat(val.replace(/[^\d.-]/g, "")) || 0; // remove ALL non-numeric chars
-            }
-            return val || 0;
-          };
-          return toNum(a) - toNum(b);
+      let sorter = "string";
+
+      if (c.includes("%") || c.includes("Price")) {
+        sorter = (a, b) => {
+          const num = v => parseFloat((v || "0").toString().replace(/[^\d.-]/g, "")) || 0;
+          return num(a) - num(b);
         };
-      } 
-      // Detect date columns
-      else if (c.toLowerCase().includes("date")) {
-        sorterType = "date";
       }
+
+      if (c === "Signal Date") {
+        sorter = (a, b) => {
+          const parse = d => {
+            const [y, m, day] = d.split("-");
+            return new Date(y, m - 1, day);
+          };
+        return parse(a) - parse(b);
+      };
+      }
+
 
       return {
         title: c,
         field: c,
         headerFilter: "input",
-        sorter: sorterFunc ? sorterFunc : sorterType,
-        headerSort: true,
+        sorter: sorter,
+
+        // Freeze only Symbol column
+        frozen: c === "Symbol",
+
+        formatter: cell => {
+          const val = cell.getValue();
+
+          if (typeof val === "string" && val.includes("%")) {
+            const num = parseFloat(val.replace(/[^\d.-]/g, ""));
+            if (num > 0) return `<span style="color:green;font-weight:600">${val}</span>`;
+            if (num < 0) return `<span style="color:red;font-weight:600">${val}</span>`;
+          }
+
+          return val;
+        }
       };
     }),
+
+    rowFormatter: row => {
+      const d = row.getData();
+
+      const best = parsePercent(d["1M Best %"]);
+      const dd = parsePercent(d["Max Drawdown %"]);
+
+      if (best > 10 && dd > -5) {
+        row.getElement().style.backgroundColor = "#e8f5e9";
+      }
+    }
   });
 
-  // ✅ Default sort: latest Signal Date descending
-  const dateCol = columns.find(c => c.toLowerCase().includes("date"));
-  if (dateCol) {
-    table.setSort([{ column: dateCol, dir: "desc" }]);
-  }
-
-   // 🔹 Remember page size preference
-  table.on("pageSizeChanged", size => {
-    localStorage.setItem("pageSize", size);
-  });
+  table.setSort([{ column: "Signal Date", dir: "desc" }]);
 }
 
-
-// --- Filter logic ---
+// ==========================================================
+// 🎯 Filters
+// ==========================================================
 function applyFilters() {
-  const symbolVal = document.getElementById("symbolFilter")?.value || "";
-  const dateVal = document.getElementById("dateFilter")?.value || "";
+  const sym = document.getElementById("symbolFilter").value;
+  const date = document.getElementById("dateFilter").value;
 
   table.clearFilter();
 
-  if (symbolVal) {
-    const symbolCol = table.getColumns().find(c => c.getField().toLowerCase().includes("symbol"));
-    if (symbolCol) table.addFilter(symbolCol.getField(), "=", symbolVal);
-  }
-
-  if (dateVal) {
-    const dateCol = table.getColumns().find(c => c.getField().toLowerCase().includes("date"));
-    if (dateCol) table.addFilter(dateCol.getField(), "=", dateVal);
-  }
+  if (sym) table.addFilter("Symbol", "=", sym);
+  if (date) table.addFilter("Signal Date", "=", date);
 }
 
-// --- Download Data button ---
-document.getElementById("downloadCSV")?.addEventListener("click", () => {
-  if (!table) return;
+// ==========================================================
+// 🔥 Quick Filters (FIXED)
+// ==========================================================
+function parsePercent(val) {
+  return parseFloat((val || "0").toString().replace(/[^\d.-]/g, "")) || 0;
+}
 
-  table.download("csv", "stock_signals.csv", {
-    delimiter: ",",
-    bom: true, // Excel-safe
+function applyQuickFilter(type) {
+  table.clearFilter();
+
+  table.setFilter(data => {
+    const best1M = parsePercent(data["1M Best %"]);
+    const best3M = parsePercent(data["3M Best %"]);
+    const maxRet = parsePercent(data["Max Return %"]);
+    const dd = parsePercent(data["Max Drawdown %"]);
+    const current = parsePercent(data["Current Return %"]);
+
+    if (type === "strong") {
+      return (
+        (best1M > 10 || best3M > 15 || maxRet > 20) &&
+        dd > -5
+      );
+    }
+
+    if (type === "momentum") return current > 5;
+    if (type === "lowrisk") return dd > -5;
+
+    return true;
+  });
+}
+
+// button binding
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll("#quickFilters button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#quickFilters button")
+        .forEach(b => b.classList.remove("active"));
+
+      btn.classList.add("active");
+
+      applyQuickFilter(btn.dataset.filter);
+    });
   });
 });
 
-// --- Auto load data on page load ---
+// ==========================================================
+// 📥 Export CSV
+// ==========================================================
+document.getElementById("downloadCSV")?.addEventListener("click", () => {
+  if (!table) return;
+  table.download("csv", "stock_signals.csv");
+});
+
+// ==========================================================
+// 🚀 Init
+// ==========================================================
 window.addEventListener("DOMContentLoaded", loadDatabase);

@@ -2,17 +2,27 @@
 
 All notable changes to this project will be documented here.
 
-## [1.2.1] - 2026-04-15
-### Fixed
-- Adjust Stock Signal Prices for corporate actions - split/bonus etc. Reload full SIGNAL_RETURNS file everyday instead of inserting new rows. 
--  Rename COMPANY_DETAILS table to STOCK_DETAILS 
-- Fixed pandas to use 2.2.2 version 
+## [1.3.1] - 2026-05-02
+
+### Changed
+- Use all timeframes to calculate days to peak instead of just considering 1m timeframe.
+- bump version to 1.3.1 from 1.3.0 
+
+## [1.3.0] - 2026-04-19
 
 ### Added
+- Max return metrics (1W, 2W, 1M, etc.)
+- Drawdown and From Peak calculations
+- Days in Profit %
 
-- Add a table STOCK_PRICES which contains stock prices for all signals for current date and updates daily
-- Use 'Updated Signal Price' to calculate return for 1week/2week and so on
+### Improved
+- Mobile UI optimization
+- Quick filters (Strong, Momentum, Low Risk)
+- Frozen Symbol column
 
+### Fixed
+- Column mismatch issues
+- DB sync issues across branches
 
 ## [1.1.1] - 2025-11-10
 ### Fixed

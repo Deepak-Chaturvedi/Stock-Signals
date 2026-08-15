@@ -84,24 +84,11 @@ def merge_signals_with_prices(signals_df, stock_df):
 
 
 def compute_returns(group):
-    """Compute returns for a single (Symbol, Signal_Type, Signal_date, Updated_Signal_Price, Signal_Rank) group."""
-    
-    #debug - 18 mar 2026
-    # print("DEBUG group columns:", group.columns.tolist())
-    # print("DEBUG group index names:", group.index.names)
+    """Compute fixed returns + max return + drawdown + quality metrics for each horizon + full-period metrics."""
 
-    # group = group.reset_index(drop=True)  # important
-
-    # if "Signal_Price" not in group.columns:
-    #     raise KeyError(f"Signal_Price missing in group. Columns: {group.columns}")
-    
     group = group.sort_values("Date").reset_index(drop=True)
 
-    # 🔥 Extract from group.name (this is the fix)
-    # print("DEBUG group.name:", group.name)
-    # symbol, signal_type, sig_date, sig_price, signal_rank = group.name
-
-    # ensure numeric columns before calculation
+    # ensure numeric
     group["Price"] = pd.to_numeric(group["Price"], errors="coerce")
     group["Updated_Signal_Price"] = pd.to_numeric(group["Updated_Signal_Price"], errors="coerce")
 
@@ -115,14 +102,19 @@ def compute_returns(group):
         "Updated_Signal_Price": sig_price,
         "Signal_Rank": group.at[0, "Signal_Rank"],
     }
-    
+
     for name, days in HORIZONS.items():
+
+        # =========================
+        # 1️⃣ FIXED RETURN
+        # =========================
         target = sig_date + pd.Timedelta(days=days)
         sel = group[group["Date"] >= target]
 
         if not sel.empty:
-            p = pd.to_numeric(sel.iloc[0]["Price"], errors="coerce")
-            d = sel.iloc[0]["Date"]
+            row = sel.iloc[0]
+            p = row["Price"]
+            d = row["Date"]
 
             if pd.notna(p) and pd.notna(sig_price) and sig_price != 0:
                 out[name] = round((p / sig_price - 1) * 100, 2)
@@ -136,8 +128,118 @@ def compute_returns(group):
             out[f"{name}_price"] = pd.NA
             out[f"{name}_date"] = pd.NaT
 
+        # =========================
+        # 2️⃣ WINDOW METRICS
+        # =========================
+        end_date = sig_date + pd.Timedelta(days=days)
+
+        window = group[
+            (group["Date"] > sig_date) &
+            (group["Date"] <= end_date)
+        ].copy()
+
+        window = window[window["Price"].notna()]
+
+        if not window.empty and pd.notna(sig_price) and sig_price != 0:
+
+            window["ret"] = window["Price"] / sig_price - 1
+
+            # MAX RETURN
+            idx_max = window["ret"].idxmax()
+            row_max = window.loc[idx_max]
+
+            max_ret = row_max["ret"]
+            max_price = row_max["Price"]
+            max_date = row_max["Date"]
+
+            # MAX DRAWDOWN
+            idx_min = window["ret"].idxmin()
+            row_min = window.loc[idx_min]
+
+            min_ret = row_min["ret"]
+            min_price = row_min["Price"]
+            min_date = row_min["Date"]
+
+            # time metrics
+            time_to_peak = (max_date - sig_date).days
+            time_to_dd = (min_date - sig_date).days
+
+            # peak to end
+            end_ret = window.iloc[-1]["ret"]
+            peak_to_end = end_ret - max_ret
+
+            # % days in profit
+            pct_days_profit = (window["ret"] > 0).mean()
+
+            # volatility
+            vol = window["ret"].std()
+
+            # store
+            out[f"{name}_max"] = round(max_ret * 100, 2)
+            out[f"{name}_max_price"] = max_price
+            out[f"{name}_max_date"] = max_date
+
+            out[f"{name}_dd"] = round(min_ret * 100, 2)
+            out[f"{name}_dd_price"] = min_price
+            out[f"{name}_dd_date"] = min_date
+
+            out[f"{name}_time_to_peak"] = time_to_peak
+            out[f"{name}_time_to_dd"] = time_to_dd
+
+            out[f"{name}_peak_to_end"] = round(peak_to_end * 100, 2)
+            out[f"{name}_pct_days_profit"] = round(pct_days_profit, 2)
+            out[f"{name}_volatility"] = round(vol, 4)
+
+        else:
+            for suffix in [
+                "_max", "_max_price", "_max_date",
+                "_dd", "_dd_price", "_dd_date",
+                "_time_to_peak", "_time_to_dd",
+                "_peak_to_end", "_pct_days_profit", "_volatility"
+            ]:
+                out[f"{name}{suffix}"] = pd.NA
+
+    # =========================
+    # 3️⃣ FULL PERIOD METRICS (NEW)
+    # =========================
+    full_window = group[group["Date"] > sig_date].copy()
+    full_window = full_window[full_window["Price"].notna()]
+
+    if not full_window.empty and pd.notna(sig_price) and sig_price != 0:
+
+        full_window["ret"] = full_window["Price"] / sig_price - 1
+
+        # MAX RETURN
+        idx_max = full_window["ret"].idxmax()
+        row_max = full_window.loc[idx_max]
+
+        out["ret_sinceSignal_max"] = round(row_max["ret"] * 100, 2)
+        out["ret_sinceSignal_max_price"] = row_max["Price"]
+        out["ret_sinceSignal_max_date"] = row_max["Date"]
+
+        # MAX DRAWDOWN
+        idx_min = full_window["ret"].idxmin()
+        row_min = full_window.loc[idx_min]
+
+        out["ret_sinceSignal_dd"] = round(row_min["ret"] * 100, 2)
+        out["ret_sinceSignal_dd_price"] = row_min["Price"]
+        out["ret_sinceSignal_dd_date"] = row_min["Date"]
+
+    else:
+        out["ret_sinceSignal_max"] = pd.NA
+        out["ret_sinceSignal_max_price"] = pd.NA
+        out["ret_sinceSignal_max_date"] = pd.NaT
+
+        out["ret_sinceSignal_dd"] = pd.NA
+        out["ret_sinceSignal_dd_price"] = pd.NA
+        out["ret_sinceSignal_dd_date"] = pd.NaT
+
+    # =========================
+    # 4️⃣ CURRENT RETURN (keep this)
+    # =========================
     last_row = group.iloc[-1]
     last_price = pd.to_numeric(last_row["Price"], errors="coerce")
+
     if pd.notna(last_price) and pd.notna(sig_price) and sig_price != 0:
         out["ret_sinceSignal"] = round((last_price / sig_price - 1) * 100, 2)
     else:
@@ -196,12 +298,11 @@ def calculate_returns(merged_df):
     )
 
     #drop all other columns except Signal_Price after merge
-    col_order = ['Symbol', 'Signal_Type', 'Signal_date', 'Signal_Price','Updated_Signal_Price','Signal_Rank', 
-                 'ret_1w', 'ret_1w_price', 'ret_1w_date', 'ret_2w','ret_2w_price', 'ret_2w_date', 'ret_1m', 
-                 'ret_1m_price', 'ret_1m_date','ret_3m', 'ret_3m_price', 'ret_3m_date', 'ret_6m', 'ret_6m_price',
-                 'ret_6m_date', 'ret_1y', 'ret_1y_price', 'ret_1y_date','ret_sinceSignal', 'current_price', 'current_date' ]
-
-    returns_df = returns_df[col_order]
+    # col_order = ['Symbol', 'Signal_Type', 'Signal_date', 'Signal_Price','Updated_Signal_Price','Signal_Rank', 
+    #              'ret_1w', 'ret_1w_price', 'ret_1w_date', 'ret_2w','ret_2w_price', 'ret_2w_date', 'ret_1m', 
+    #              'ret_1m_price', 'ret_1m_date','ret_3m', 'ret_3m_price', 'ret_3m_date', 'ret_6m', 'ret_6m_price',
+    #              'ret_6m_date', 'ret_1y', 'ret_1y_price', 'ret_1y_date','ret_sinceSignal', 'current_price', 'current_date' ]
+    # returns_df = returns_df[col_order]
 
     # Convert numeric columns to ensure no text values
     ret_cols = [c for c in returns_df.columns if c.startswith("ret_") and not c.endswith("_price") and not c.endswith("_date")]
@@ -318,7 +419,7 @@ def generate_signal_returns(db_path, stock_df):
     try:
         conn = sqlite3.connect(db_path)
 
-        # Step 1: Load signals from DB
+        # Step 1: Load signals from DB, adds current_date and current Price
         signals_df = load_signals_from_db(conn)
         if signals_df.empty:
             print("⚠️ No signals found in DB — skipping returns generation.")
@@ -326,7 +427,6 @@ def generate_signal_returns(db_path, stock_df):
         # print(f"load_signals_from_db ran :")
         # display(signals_df.tail(10))
 
-        #14APR2026 - moved this funciton in load_signals_from_db. Date changed to current_date, Price changed to current_price
         # Step 2: Merge signals with stock prices
         merged_df = merge_signals_with_prices(signals_df, stock_df)
         if merged_df.empty:
@@ -375,7 +475,17 @@ def generate_signal_returns(db_path, stock_df):
         #Save to DB - REPLACE ENTIRE TABLE
         if not returns_df.empty:
             try:
-                returns_df.to_sql('SIGNAL_RETURNS', conn, if_exists='replace', index=False)
+                df = returns_df.copy()
+                for col in df.columns:
+                    if pd.api.types.is_datetime64_any_dtype(df[col]):
+                        df[col] = df[col].dt.strftime("%Y-%m-%d")
+                    elif df[col].dtype == "object":
+                        df[col] = df[col].apply(
+                            lambda x: x.strftime("%Y-%m-%d") if isinstance(x, pd.Timestamp) else x
+                        )
+
+                df = df.where(pd.notnull(df), None)
+                df.to_sql('SIGNAL_RETURNS', conn, if_exists='replace', index=False)
                 conn.commit()
                 print("💾 SIGNAL_RETURNS table replaced successfully with new data.")
             except Exception as e:
@@ -385,7 +495,7 @@ def generate_signal_returns(db_path, stock_df):
         else:
             print("ℹ️ No Signals — SIGNAL_RETURNS is not replaced.")
 
-        return True, returns_df
+        return True, df
 
     except Exception as e:
         print(f"❌ Error during signal returns generation: {e}")

@@ -10,27 +10,46 @@
 //   ORDER BY "Signal Date" DESC, A.AD_Slope DESC, A.Avg_Volume_Spike DESC;
 
 window.QUERY_SIGNAL_ACCUMULATION = `
-SELECT DISTINCT 
-  A.Symbol, 
-  B.COMPANY_NAME AS Name,
-  a.Signal_Type as 'Signal Type',
-  DATE(A.Signal_date) AS 'Signal Date',
-  CAST(ROUND(a.Updated_Signal_Price,0) AS INTEGER) AS 'Signal Price',
-  CAST(ROUND(current_price, 0) AS INTEGER) AS 'Current Price',
-  cast(round(ret_1w_perc  ,0)as INTEGER) || '%' AS '1 Week Return %',
-  cast(round(ret_2w_perc  ,0)as INTEGER) || '%' AS '2 Week Return %',
-  cast(round(ret_1m_perc  ,0)as INTEGER) || '%' AS '1 Month Return %',
-  cast(round(ret_3m_perc  ,0)as INTEGER) || '%' AS '3 Month Return %',
-  cast(round(ret_6m_perc  ,0)as INTEGER) || '%' AS '6 Month Return %',
-  cast(round(ret_1y_perc  ,0)as INTEGER) || '%' AS '1 Year Return %',
-  cast(round(ret_sinceSignal_perc ,0) AS INTEGER) || '%' AS 'Return Since Signal %'
+  SELECT DISTINCT 
+    A.Symbol, 
+    B.COMPANY_NAME AS 'Company Name',
+    A.Signal_Type AS 'Signal Type',
+    DATE(A.Signal_date) AS 'Signal Date',
+
+    CAST(ROUND(A.Updated_Signal_Price,0) AS INTEGER) AS 'Signal Price',
+    CAST(ROUND(A.current_price,0) AS INTEGER) AS 'Current Price',
+
+    -- 🎯 Reality
+    CAST(ROUND(A.ret_sinceSignal,0) AS INTEGER) || '%' AS 'Current Return %',
+
+    -- 🚀 Best Case
+    CAST(ROUND(A.ret_1w_max,0) AS INTEGER) || '%' AS '1W Best %',
+    CAST(ROUND(A.ret_2w_max,0) AS INTEGER) || '%' AS '2W Best %',
+    CAST(ROUND(A.ret_1m_max,0) AS INTEGER) || '%' AS '1M Best %',
+    CAST(ROUND(A.ret_3m_max,0) AS INTEGER) || '%' AS '3M Best %',
+
+    -- Add this (overall max)
+    CAST(ROUND(A.ret_sinceSignal_max,0) AS INTEGER) || '%' AS 'Max Return %',
+
+    -- 🔻 Risk
+    CAST(ROUND(A.ret_sinceSignal_dd,0) AS INTEGER) || '%' AS 'Max Drawdown %',
+
+    -- ⚡ Behavior
+    coalesce(A.ret_1y_time_to_peak, A.ret_3m_time_to_peak, A.ret_1m_time_to_peak,
+    A.ret_2w_time_to_peak, A.ret_1w_time_to_peak) AS 'Days to Peak',
+    CAST(ROUND(coalesce(A.ret_1y_peak_to_end, A.ret_3m_peak_to_end, A.ret_1m_peak_to_end,
+    A.ret_2w_peak_to_end, A.ret_1w_peak_to_end),0) AS INTEGER) || '%' AS 'Change From Peak %'
+
   FROM SIGNAL_RETURNS AS A
   LEFT JOIN STOCK_DETAILS AS B
     ON A.Symbol = B.Symbol
+
   WHERE B.EXCHANGE != 'BSE'
   AND B.UPDATE_DATE = (SELECT MAX(UPDATE_DATE) FROM STOCK_DETAILS)
+
   ORDER BY DATE(A.Signal_date) DESC, A.Signal_Rank ASC
   ;
 `;
 // script.js
 //ORDER BY  7 DESC,8 DESC,9 DESC,10 DESC,11 DESC,12 DESC,13 DESC
+// ROUND(A.ret_1m_pct_days_profit * 100,0) || '%' AS 'Days in Profit %'

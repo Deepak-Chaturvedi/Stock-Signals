@@ -2,7 +2,7 @@ name: Run Stock Signals Daily
 
 on:
   schedule:
-    - cron: "0 16 * * *"  # Every day at 4:00 PM UTC, (9:30 PM IST)
+    - cron: "0 14 * * *"  # Every day at 2:00 PM UTC, (8:30/9:30 PM IST)
   workflow_dispatch:      # Allows manual run
 
 permissions:

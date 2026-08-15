@@ -8,39 +8,45 @@
   <!-- Tabulator CSS -->
   <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet">
 
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
   <!-- SQL.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
 
   <!-- Tabulator JS -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
 
-  <link rel="stylesheet" href="styles.css" />
+  <!-- Your CSS -->
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
-  <h1>📈 Stock Signals Dashboard</h1>
-    <p id="lastUpdated" class="last-updated">
-      Data Updated:
-    </p>
 
-
-
-  <div id="controls">
-    <button id="loadData">Load Data</button>
-    <button id="downloadCSV">Export CSV</button>
-    <input type="text" id="filterInput" placeholder="Filter symbol...">
+  <!-- 🔝 Compact Header -->
+  <div class="top-bar">
+    <h1>📈 Stock Signals</h1>
+    <button id="downloadCSV" class="export-btn">Export CSV</button>
   </div>
 
-  <div id="filters" style="display:flex;gap:10px;justify-content:center;margin-bottom:10px;"></div>
+  <!-- Last Updated -->
+  <p id="lastUpdated" class="last-updated"></p>
 
-  <div id="table"></div>
+  <!-- Filters (Dynamic) -->
+  <div id="filters"></div>
 
-  <canvas id="chart" width="600" height="300"></canvas>
+  <!-- 🔥 Quick Filters -->
+  <div id="quickFilters" class="quick-filters">
+    <button data-filter="strong">Strong</button>
+    <button data-filter="momentum">Momentum</button>
+    <button data-filter="lowrisk">Low Risk</button>
+    <button data-filter="reset" class="active">Reset</button>
+  </div>
 
-  <script src="queries.js"></script>
+  <!-- 📊 Table -->
+  <div id="tableContainer">
+    <div id="table"></div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="queries.js?v=3"></script>
   <script src="script.js"></script>
 
 </body>
