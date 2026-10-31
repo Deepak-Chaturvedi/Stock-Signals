@@ -5,3 +5,4 @@ src/__pycache__/
 data/backups/
 data/transactions/
 docs/data/
+test/
