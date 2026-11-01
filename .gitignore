@@ -9,3 +9,8 @@ test/
 src/__pycache__/*
 src/modules/__pycache__/*
 data/securities/*
+
+# Python cache
+src/__pycache__/
+*.py[cod]
+.pytest_cache/
