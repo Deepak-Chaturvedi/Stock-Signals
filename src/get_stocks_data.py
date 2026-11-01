@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # Database helper functions 
 # ---------------------------
 
-def get_company_symbols(db_path, table_name: str = "STOCK_DETAILS") -> pd.DataFrame:
+def get_company_symbols(db_path, ind: str = "STOCK_DETAILS", us: str = "STOCK_DETAILS_US", india_only: bool = True) -> pd.DataFrame:
     """
     Fetch company details (e.g., ticker symbols) from SQLite.
     Expects a database path.
@@ -31,20 +31,29 @@ def get_company_symbols(db_path, table_name: str = "STOCK_DETAILS") -> pd.DataFr
         logger.error(f"Database not found at: {db_path}")
         raise FileNotFoundError(f"Database not found at: {db_path}")
 
+    # Get the list of company symbols from the database - Indian and US stocks
     try:
         conn = sqlite3.connect(db_path)
-        query = f"SELECT * FROM {table_name} WHERE EXCHANGE != 'BSE' and UPDATE_DATE = (SELECT MAX(UPDATE_DATE) FROM {table_name})"
-        df = pd.read_sql_query(query, conn)
+        ind_query = f"SELECT * FROM {ind} WHERE EXCHANGE != 'BSE' and UPDATE_DATE = (SELECT MAX(UPDATE_DATE) FROM {ind})"
+        us_query = f"SELECT * FROM {us} WHERE EXCLUDE = FALSE and UPDATE_DATE = (SELECT MAX(UPDATE_DATE) FROM {us})"
+        df_ind = pd.read_sql_query(ind_query, conn)
+        df_us = pd.read_sql_query(us_query, conn)
         conn.close()
     except Exception as e:
-        logger.error(f"Error reading table {table_name}: {e}")
+        logger.error(f"Error reading stock tables from database: {e}")
         raise
-        
+
     # Add .NS in Symbol names to align with yfinance API format
-    df['ticker'] = df['SYMBOL'] + '.NS'
+    df_ind['ticker'] = df_ind['SYMBOL'] + '.NS'
+    df_us['ticker'] = df_us['SYMBOL']
+    df_us['EXCHANGE'] = 'US'
+    df_us.drop(columns=['MARKET_CAP','COUNTRY','IPO_YEAR','SECTOR','INDUSTRY','EXCLUDE'], inplace=True)
 
-    return df
-
+    if india_only:
+        return df_ind
+    else:
+        # return both Indian and US stocks
+        return pd.concat([df_ind, df_us], ignore_index=True)
 
 # ----------------------------
 # Yahoo Finance helper
