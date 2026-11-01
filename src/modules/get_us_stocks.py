@@ -22,7 +22,7 @@ def get_us_stocks(db_path, table_name: str = "STOCK_DETAILS_US") -> pd.DataFrame
      
 
     # Load your Nasdaq screener file. Source: https://www.nasdaq.com/market-activity/stocks/screener 
-    df = pd.read_csv(r"D:\Work\Projects\Stock_Market\Stock_Market\data\nasdaq_screener_1793423118225.csv")
+    df = pd.read_csv(r"../data/securities/nasdaq_screener_1793423118225.csv")
 
     # Clean text columns
     df["Name"] = df["Name"].fillna("").str.strip()
