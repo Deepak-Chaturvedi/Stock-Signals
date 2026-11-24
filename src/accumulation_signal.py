@@ -93,6 +93,32 @@ def detect_gradual_accumulation(df_all,
 
 
 def filter_accumulation(accumulation_df):
+    """Filter stocks that meet additional entry criteria.
+
+    Handles empty DataFrames and missing required columns gracefully.
+    """
+    # If the input is empty, just return it (nothing to filter).
+    if accumulation_df.empty:
+        return accumulation_df
+
+    # Ensure required columns are present; if any are missing, return an empty DataFrame.
+    required_cols = ['20ema', '50ema', '200ema', 'Close', '7dv', '30dv', 'Accumulating']
+    missing = [col for col in required_cols if col not in accumulation_df.columns]
+    if missing:
+        # Optionally log which columns are missing for debugging.
+        # For now, just return an empty DataFrame with the expected columns.
+        return pd.DataFrame(columns=required_cols)
+
+    # Existing filter logic.
+    accum_df = accumulation_df[
+        (accumulation_df['20ema'] > accumulation_df['50ema']) &
+        (accumulation_df['50ema'] < accumulation_df['200ema']) &
+        (accumulation_df['Close'] > accumulation_df['50ema']) &
+        (accumulation_df['7dv'] >= 1.5 * accumulation_df['30dv']) &
+        (accumulation_df['Accumulating'] == True)  # Added on 26Oct2025
+    ]
+    # Return sorted by volume spike and AD slope.
+    return accum_df.sort_values(by=['Avg_Volume_Spike', 'AD_Slope'], ascending=[False, False]).reset_index(drop=True)
     """Filter stocks that meet additional entry criteria."""
 
     #tesing 11Feb2025 -debug
