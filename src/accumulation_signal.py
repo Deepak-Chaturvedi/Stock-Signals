@@ -83,7 +83,13 @@ def detect_gradual_accumulation(df_all,
             '30dv': latest['30dv'],
         })
 
-    return pd.DataFrame(results).sort_values(by='Accumulating', ascending=False)
+    # Build the result DataFrame
+    result_df = pd.DataFrame(results)
+    # If no rows detected, return the empty DataFrame directly
+    if result_df.empty:
+        return result_df
+    # When rows exist, "Accumulating" column is present
+    return result_df.sort_values(by='Accumulating', ascending=False)
 
 
 def filter_accumulation(accumulation_df):

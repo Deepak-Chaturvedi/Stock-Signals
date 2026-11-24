@@ -24,6 +24,11 @@ jobs:
       with:
         python-version: '3.12'
 
+    - name: Increase file descriptor limit
+      run: |
+        echo "Current limit: $(ulimit -n)"
+        ulimit -n 4096
+        echo "New limit: $(ulimit -n)"
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
